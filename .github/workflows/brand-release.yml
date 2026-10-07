@@ -1,4 +1,5 @@
 name: Build brand and release
+# Generates HA 2026.3+ local branding and publishes semantic release.
 
 on:
   push:
