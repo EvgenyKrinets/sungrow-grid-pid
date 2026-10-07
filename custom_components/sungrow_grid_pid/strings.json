@@ -1,0 +1,15 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Sungrow Grid PID",
+        "description": "Sungrow detected. Press Submit to install the Grid PID controller."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Sungrow Grid PID is already installed.",
+      "sungrow_not_found": "Sungrow integration was not found. Install and configure Sungrow first.",
+      "required_entities_not_found": "Sungrow is installed, but Export Power or Battery Charge Power entity was not found."
+    }
+  }
+}
