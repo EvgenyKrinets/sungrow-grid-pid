@@ -42,8 +42,8 @@ class SungrowGridPidCard extends HTMLElement {
     const ts=e.target&&this._hass?.states[e.target], target=Number(ts?.state||15000);
     const min=Number(ts?.attributes.min??0), max=Number(ts?.attributes.max??25000), step=Number(ts?.attributes.step??1000);
     const batt=this._n(e.battery), exp=this._n(e.exportPower);
-    const batteryLabel=batt===null?"Battery":batt>20?"Battery · charging":batt<-20?"Battery · discharging":"Battery · idle";
-    const gridLabel=exp===null?"Grid":exp>=0?"Grid · export":"Grid · import";
+    const batteryLabel=batt===null?"Батарея":batt>20?"Батарея · заряд":"Батарея · разряд";
+    const gridLabel=exp===null?"Сеть":exp>=0?"Сеть · экспорт":"Сеть · импорт";
     this.shadowRoot.innerHTML=`
 <style>
 :host{display:block}*{box-sizing:border-box}ha-card{overflow:hidden;border-radius:24px;background:linear-gradient(145deg,#0878d1,#159ee4 58%,#39b7ef);color:#fff;padding:18px;box-shadow:0 10px 28px #0002}
@@ -56,24 +56,24 @@ class SungrowGridPidCard extends HTMLElement {
 @media(max-width:520px){ha-card{padding:13px;border-radius:20px}.flow{grid-template-columns:1fr 1fr;grid-template-areas:"solar inv" "home grid" "battery battery"}.arrow{display:none}.node{min-height:98px}.val{font-size:18px}.metrics{grid-template-columns:1fr 1fr}}
 </style>
 <ha-card>
-<div class="head"><div><div class="title">⚡ Sungrow Grid PID</div><div class="sub">Live solar energy flow · 1-second grid controller</div></div><button id="toggle" class="toggle ${enabled?"on":""}"><span class="knob"></span></button></div>
-<div class="flow">
+<div class="head"><div><div class="title">⚡ Sungrow Grid PID</div><div class="sub">Умный контроль экспорта в сеть</div></div><button id="toggle" class="toggle ${enabled?"on":""}"><span class="knob"></span></button></div>
+<div style="font-size:18px;font-weight:800;margin-top:18px">Как это работает?</div><div class="flow">
 <div class="arrow a1"></div><div class="arrow a2"></div><div class="arrow a3"></div><div class="arrow a4"></div>
-<div class="node solar"><div class="ico">☀️</div><div class="name">Solar PV</div><div class="val">${this._power(e.pv)}</div><div class="small">solar production</div></div>
-<div class="node inv"><div class="ico">⚡</div><div class="name">Sungrow inverter</div><div class="val">${this._power(e.inverter)}</div><div class="small">power conversion</div></div>
-<div class="node home"><div class="ico">🏠</div><div class="name">Home load</div><div class="val">${this._power(e.load)}</div><div class="small">house consumption</div></div>
+<div class="node solar"><div class="ico">☀️</div><div class="name">Солнечные панели</div><div class="val">${this._power(e.pv)}</div><div class="small">генерация PV</div></div>
+<div class="node inv"><div class="ico">⚡</div><div class="name">Инвертор Sungrow</div><div class="val">${this._power(e.inverter)}</div><div class="small">гибридный инвертор</div></div>
+<div class="node home"><div class="ico">🏠</div><div class="name">Домашнее потребление</div><div class="val">${this._power(e.load)}</div><div class="small">потребление дома</div></div>
 <div class="node battery"><div class="ico">🔋</div><div class="name">${batteryLabel}</div><div class="val">${this._power(e.battery)}</div><div class="small">SOC ${e.soc?this._state(e.soc)+"%":"—"}</div></div>
 <div class="node gridnode"><div class="ico">🔌</div><div class="name">${gridLabel}</div><div class="val">${this._power(e.exportPower)}</div><div class="small">target ${Math.round(target).toLocaleString()} W</div></div>
 </div>
-<div class="control"><div class="targetline"><span>Grid Target</span><b>${Math.round(target).toLocaleString()} W</b></div><input id="target" type="range" min="${min}" max="${max}" step="${step}" value="${target}" ${e.target?"":"disabled"}><div class="limits"><span>${min.toLocaleString()} W</span><span>${max.toLocaleString()} W</span></div></div>
+<div class="control"><div class="targetline"><span>Целевой экспорт</span><b>${Math.round(target).toLocaleString()} W</b></div><input id="target" type="range" min="${min}" max="${max}" step="${step}" value="${target}" ${e.target?"":"disabled"}><div class="limits"><span>${min.toLocaleString()} W</span><span>${max.toLocaleString()} W</span></div></div>
 <div class="metrics">
-<div class="metric"><div class="ml">PID Output</div><div class="mv">${this._power(e.output)}</div></div>
-<div class="metric"><div class="ml">Grid Error</div><div class="mv">${this._power(e.error)}</div></div>
-<div class="metric"><div class="ml">Battery Charge Command</div><div class="mv">${this._power(e.chargeCommand)}</div></div>
-<div class="metric"><div class="ml">Controller</div><div class="mv">${enabled?"● Running":"○ Stopped"}</div></div>
+<div class="metric"><div class="ml">Команда PID на заряд батареи</div><div class="mv">${this._power(e.output)}</div></div>
+<div class="metric"><div class="ml">Отклонение от цели</div><div class="mv">${this._power(e.error)}</div></div>
+<div class="metric"><div class="ml">Заряд батареи</div><div class="mv">${this._power(e.chargeCommand)}</div></div>
+<div class="metric"><div class="ml">PID контроллер</div><div class="mv">${enabled?"● Running · PID активен":"○ Stopped"}</div></div>
 </div>
-<div class="footer"><span>Updates from Home Assistant live states</span><span>v${this._state(e.version,CARD_VERSION)}</span></div>
-${(!e.controller||!e.target)?'<div class="missing">PID entities not found. Add Sungrow Grid PID in Settings → Devices & services.</div>':""}
+<div class="footer"><span>Живые данные Home Assistant · обновление каждую секунду</span><span>v${this._state(e.version,CARD_VERSION)}</span></div>
+${(!e.controller||!e.target)?'<div class="missing">Сущности PID не найдены. Добавьте Sungrow Grid PID в Настройки → Устройства и службы.</div>':""}
 </ha-card>`;
     this.shadowRoot.getElementById("toggle")?.addEventListener("click",()=>{if(e.controller)this._call("switch",enabled?"turn_off":"turn_on",{entity_id:e.controller});});
     const sl=this.shadowRoot.getElementById("target");
@@ -84,6 +84,6 @@ ${(!e.controller||!e.target)?'<div class="missing">PID entities not found. Add S
 function registerSungrowGridPidCard(){
  if(!customElements.get("sungrow-grid-pid-card"))customElements.define("sungrow-grid-pid-card",SungrowGridPidCard);
  window.customCards=window.customCards||[];
- if(!window.customCards.some(c=>c.type==="sungrow-grid-pid-card"))window.customCards.push({type:"sungrow-grid-pid-card",name:"Sungrow Grid PID",description:"Visual Sungrow solar flow and PID grid export controller.",preview:true,documentationURL:"https://github.com/EvgenyKrinets/sungrow-grid-pid"});
+ if(!window.customCards.some(c=>c.type==="sungrow-grid-pid-card"))window.customCards.push({type:"sungrow-grid-pid-card",name:"Sungrow Grid PID",description:"Визуальный контроль экспорта Sungrow в стиле оригинальной иллюстрации.",preview:true,documentationURL:"https://github.com/EvgenyKrinets/sungrow-grid-pid"});
 }
 registerSungrowGridPidCard(); window.addEventListener("load",()=>setTimeout(registerSungrowGridPidCard,1000),{once:true}); setTimeout(registerSungrowGridPidCard,2500);
