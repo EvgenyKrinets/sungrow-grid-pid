@@ -1,0 +1,10 @@
+{
+  "config": {
+    "step": {"user": {"title": "Sungrow Grid PID", "description": "Sungrow обнаружен. Нажмите Отправить для установки Grid PID."}},
+    "abort": {
+      "single_instance_allowed": "Sungrow Grid PID уже установлен.",
+      "sungrow_not_found": "Интеграция Sungrow не найдена. Сначала установите и настройте Sungrow.",
+      "required_entities_not_found": "Не найдены необходимые сущности Export Power или Battery Charge Power."
+    }
+  }
+}
