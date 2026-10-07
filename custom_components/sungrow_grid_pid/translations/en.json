@@ -1,0 +1,10 @@
+{
+  "config": {
+    "step": {"user": {"title": "Sungrow Grid PID", "description": "Sungrow detected. Press Submit to install the Grid PID controller."}},
+    "abort": {
+      "single_instance_allowed": "Sungrow Grid PID is already installed.",
+      "sungrow_not_found": "Sungrow integration was not found.",
+      "required_entities_not_found": "Required Sungrow entities were not found."
+    }
+  }
+}
