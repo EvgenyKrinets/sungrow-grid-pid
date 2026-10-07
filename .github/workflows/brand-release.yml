@@ -1,8 +1,8 @@
 name: Build brand and release
 # Generates HA 2026.3+ local branding and publishes semantic release.
-# Release target: 1.5.0
+# Release target: 1.5.1
 # Visual dashboard release trigger
-# v1.5.0 exact-reference dashboard and Lovelace timing fix
+# v1.5.1 exact-reference dashboard and Lovelace timing fix
 
 on:
   push:
@@ -52,11 +52,11 @@ jobs:
           git add custom_components/sungrow_grid_pid/brand
           git diff --cached --quiet || git commit -m "Add Home Assistant local brand assets"
           git push
-      - name: Publish v1.5.0 release
+      - name: Publish v1.5.1 release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           git fetch origin main
-          git tag -f v1.5.0 origin/main
-          git push -f origin v1.5.0
-          gh release view v1.5.0 >/dev/null 2>&1 || gh release create v1.5.0 --title "Sungrow Grid PID v1.5.0" --notes "Full reference-image dashboard redesign, clickable sensor history and configurable entity bindings."
+          git tag -f v1.5.1 origin/main
+          git push -f origin v1.5.1
+          gh release view v1.5.1 >/dev/null 2>&1 || gh release create v1.5.1 --title "Sungrow Grid PID v1.5.1" --notes "Responsive adaptive dashboard for phone, tablet and desktop using card container width; preserves sensor history and configurable entity bindings."
