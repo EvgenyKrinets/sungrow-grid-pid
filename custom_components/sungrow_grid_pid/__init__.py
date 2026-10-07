@@ -61,6 +61,12 @@ class GridPidController:
         if self.enabled:
             return
         self.entities = discover_entities(self.hass)
+        # Put Sungrow into the known self-consumption / max battery discharge scene first.
+        scene_id = "scene.self_consumption_mode_max_battery_discharge"
+        if self.hass.states.get(scene_id) is not None:
+            await self.hass.services.async_call(
+                "scene", "turn_on", {"entity_id": scene_id}, blocking=True
+            )
         mode_id = self.entities["mode"]
         if mode_id:
             state = self.hass.states.get(mode_id)
