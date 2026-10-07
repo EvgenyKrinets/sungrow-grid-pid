@@ -1,0 +1,58 @@
+name: Build brand and release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/brand-release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  brand-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create local brand PNG files
+        shell: python
+        run: |
+          import os, struct, zlib
+          def png(path, size):
+              w=h=size
+              raw=bytearray()
+              for y in range(h):
+                  raw.append(0)
+                  for x in range(w):
+                      # cyan background, white lightning bolt
+                      inside = (
+                          (x > size*.47 and x < size*.60 and y > size*.14 and y < size*.49) or
+                          (x > size*.36 and x < size*.53 and y > size*.42 and y < size*.57) or
+                          (x > size*.40 and x < size*.50 and y > size*.52 and y < size*.86)
+                      )
+                      raw += bytes((255,255,255,255) if inside else (3,169,217,255))
+              def chunk(t,d):
+                  return struct.pack(">I",len(d))+t+d+struct.pack(">I",zlib.crc32(t+d)&0xffffffff)
+              data=b"\x89PNG\r\n\x1a\n"+chunk(b"IHDR",struct.pack(">IIBBBBB",w,h,8,6,0,0,0))+chunk(b"IDAT",zlib.compress(bytes(raw),9))+chunk(b"IEND",b"")
+              open(path,"wb").write(data)
+          d="custom_components/sungrow_grid_pid/brand"
+          os.makedirs(d,exist_ok=True)
+          png(d+"/icon.png",256)
+          png(d+"/icon@2x.png",512)
+          png(d+"/logo.png",256)
+      - name: Commit brand files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add custom_components/sungrow_grid_pid/brand
+          git diff --cached --quiet || git commit -m "Add Home Assistant local brand assets"
+          git push
+      - name: Publish v1.1.1 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch origin main
+          git tag -f v1.1.1 origin/main
+          git push -f origin v1.1.1
+          gh release view v1.1.1 >/dev/null 2>&1 || gh release create v1.1.1 --title "Sungrow Grid PID v1.1.1" --notes "Adds the installable Lovelace card and Home Assistant local brand assets."
