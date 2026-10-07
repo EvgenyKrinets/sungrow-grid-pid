@@ -1,6 +1,7 @@
 name: Build brand and release
 # Generates HA 2026.3+ local branding and publishes semantic release.
 # Release target: 1.3.0
+# Visual dashboard release trigger
 
 on:
   push:
