@@ -1,15 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520">
-<defs><linearGradient id="bg" x1="0" x2="1"><stop stop-color="#0878d1"/><stop offset="1" stop-color="#31a9ef"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="5" stdDeviation="8" flood-opacity=".18"/></filter></defs>
-<rect width="1200" height="520" rx="34" fill="url(#bg)"/>
-<text x="55" y="65" font-family="Arial,sans-serif" font-size="36" font-weight="700" fill="white">How Sungrow Grid PID works</text>
-<text x="55" y="105" font-family="Arial,sans-serif" font-size="20" fill="#e9f7ff">The controller keeps grid export near your target by adjusting battery charging every second.</text>
-<g font-family="Arial,sans-serif" text-anchor="middle" filter="url(#s)">
-<rect x="55" y="175" width="220" height="155" rx="25" fill="white"/><text x="165" y="225" font-size="44">☀</text><text x="165" y="265" font-size="23" font-weight="700" fill="#14213d">SOLAR PV</text><text x="165" y="298" font-size="18" fill="#617087">Available solar power</text>
-<rect x="365" y="175" width="220" height="155" rx="25" fill="white"/><text x="475" y="225" font-size="42">⚡</text><text x="475" y="265" font-size="23" font-weight="700" fill="#14213d">SUNGROW</text><text x="475" y="298" font-size="18" fill="#617087">Hybrid inverter</text>
-<rect x="675" y="80" width="220" height="135" rx="25" fill="white"/><text x="785" y="125" font-size="38">⌂</text><text x="785" y="160" font-size="22" font-weight="700" fill="#14213d">HOME</text><text x="785" y="188" font-size="17" fill="#617087">House consumption</text>
-<rect x="675" y="285" width="220" height="135" rx="25" fill="white"/><text x="785" y="330" font-size="38">▣</text><text x="785" y="365" font-size="22" font-weight="700" fill="#14213d">BATTERY</text><text x="785" y="393" font-size="17" fill="#159447">PID adjusts charging</text>
-<rect x="975" y="175" width="170" height="155" rx="25" fill="white"/><text x="1060" y="225" font-size="40">⇥</text><text x="1060" y="265" font-size="22" font-weight="700" fill="#14213d">GRID</text><text x="1060" y="296" font-size="18" fill="#159447">Target export</text>
-</g>
-<g fill="none" stroke-linecap="round" stroke-width="12"><path d="M285 252H350" stroke="#ff9d00"/><path d="M595 225L660 175" stroke="#fff"/><path d="M595 285L660 335" stroke="#5bff93"/><path d="M905 252H960" stroke="#5bff93"/></g>
-<g fill="#fff" font-family="Arial,sans-serif" font-size="18"><text x="55" y="475">1. Measure export</text><text x="310" y="475">2. Compare with target</text><text x="590" y="475">3. Adjust battery charge</text><text x="900" y="475">4. Repeat every second</text></g>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1350" viewBox="0 0 900 1350">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#eef8ff"/><stop offset="1" stop-color="#f8fbff"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity=".12"/></filter></defs>
+<rect width="900" height="1350" rx="42" fill="url(#bg)"/>
+<text x="70" y="92" font-family="Arial,sans-serif" font-size="42" font-weight="700" fill="#12233f">Sungrow Grid PID</text>
+<text x="70" y="132" font-family="Arial,sans-serif" font-size="23" fill="#4d6786">Умный контроль экспорта в сеть</text>
+<rect x="70" y="175" width="760" height="120" rx="25" fill="#fff" filter="url(#s)"/>
+<circle cx="112" cy="220" r="10" fill="#22c55e"/><text x="138" y="228" font-family="Arial" font-size="22" font-weight="700" fill="#17233a">PID активен</text>
+<text x="138" y="260" font-family="Arial" font-size="17" fill="#39a66a">Работает нормально</text>
+<rect x="690" y="205" width="82" height="44" rx="22" fill="#28c76f"/><circle cx="749" cy="227" r="17" fill="#fff"/>
+<text x="70" y="350" font-family="Arial" font-size="21" fill="#3b506a">Целевой экспорт</text><text x="620" y="350" font-family="Arial" font-size="34" font-weight="700" fill="#0878d1">15 000 W</text>
+<rect x="70" y="375" width="760" height="10" rx="5" fill="#c8d9e8"/><rect x="70" y="375" width="455" height="10" rx="5" fill="#1298df"/><circle cx="525" cy="380" r="16" fill="#0878d1"/>
+<text x="70" y="415" font-family="Arial" font-size="15" fill="#7890a8">0 W</text><text x="760" y="415" font-family="Arial" font-size="15" fill="#7890a8">25 000 W</text>
+<g font-family="Arial"><rect x="70" y="460" width="360" height="120" rx="24" fill="#fff" filter="url(#s)"/><text x="100" y="500" font-size="17" fill="#6b7f95">Реальный экспорт в сеть</text><text x="100" y="548" font-size="31" font-weight="700" fill="#17233a">15 020 W</text>
+<rect x="470" y="460" width="360" height="120" rx="24" fill="#fff" filter="url(#s)"/><text x="500" y="500" font-size="17" fill="#6b7f95">Команда PID на заряд</text><text x="500" y="548" font-size="31" font-weight="700" fill="#f59e0b">4 800 W</text>
+<rect x="70" y="610" width="360" height="120" rx="24" fill="#fff" filter="url(#s)"/><text x="100" y="650" font-size="17" fill="#6b7f95">Отклонение</text><text x="100" y="698" font-size="31" font-weight="700" fill="#22a765">+20 W</text>
+<rect x="470" y="610" width="360" height="120" rx="24" fill="#fff" filter="url(#s)"/><text x="500" y="650" font-size="17" fill="#6b7f95">Генерация PV</text><text x="500" y="698" font-size="31" font-weight="700" fill="#0878d1">32 400 W</text></g>
+<text x="70" y="795" font-family="Arial" font-size="28" font-weight="700" fill="#17233a">Как это работает?</text>
+<g filter="url(#s)" font-family="Arial"><rect x="70" y="835" width="220" height="155" rx="26" fill="#fff"/><text x="180" y="890" text-anchor="middle" font-size="42">☀️</text><text x="180" y="930" text-anchor="middle" font-size="18" font-weight="700" fill="#17233a">Солнечные панели</text><text x="180" y="965" text-anchor="middle" font-size="24" font-weight="700" fill="#0878d1">32 400 W</text>
+<rect x="340" y="835" width="220" height="155" rx="26" fill="#fff"/><text x="450" y="890" text-anchor="middle" font-size="42">⚡</text><text x="450" y="930" text-anchor="middle" font-size="18" font-weight="700" fill="#17233a">Инвертор Sungrow</text><text x="450" y="960" text-anchor="middle" font-size="15" fill="#6b7f95">гибридный</text>
+<rect x="610" y="835" width="220" height="155" rx="26" fill="#fff"/><text x="720" y="890" text-anchor="middle" font-size="42">🏠</text><text x="720" y="930" text-anchor="middle" font-size="18" font-weight="700" fill="#17233a">Дом</text><text x="720" y="965" text-anchor="middle" font-size="24" font-weight="700" fill="#17233a">10 000 W</text>
+<rect x="205" y="1060" width="220" height="155" rx="26" fill="#fff"/><text x="315" y="1115" text-anchor="middle" font-size="42">🔋</text><text x="315" y="1155" text-anchor="middle" font-size="18" font-weight="700" fill="#17233a">Батарея</text><text x="315" y="1190" text-anchor="middle" font-size="24" font-weight="700" fill="#f59e0b">4 800 W</text>
+<rect x="475" y="1060" width="220" height="155" rx="26" fill="#fff"/><text x="585" y="1115" text-anchor="middle" font-size="42">🔌</text><text x="585" y="1155" text-anchor="middle" font-size="18" font-weight="700" fill="#17233a">Сеть</text><text x="585" y="1190" text-anchor="middle" font-size="24" font-weight="700" fill="#22a765">15 020 W</text></g>
+<g stroke="#36d17d" stroke-width="8" stroke-linecap="round"><path d="M290 912H330"/><path d="M560 912H600"/><path d="M450 990v42"/><path d="M560 990l25 42"/></g>
+<text x="70" y="1290" font-family="Arial" font-size="18" fill="#6b7f95">Status: Running</text><text x="755" y="1290" font-family="Arial" font-size="18" fill="#6b7f95">v1.4.0</text>
 </svg>
