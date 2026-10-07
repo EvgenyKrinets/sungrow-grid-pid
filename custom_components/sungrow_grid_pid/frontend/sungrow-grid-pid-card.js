@@ -137,17 +137,25 @@ class SungrowGridPidCard extends HTMLElement {
   }
 }
 
-if (!customElements.get("sungrow-grid-pid-card")) {
-  customElements.define("sungrow-grid-pid-card", SungrowGridPidCard);
+function registerSungrowGridPidCard() {
+  if (!customElements.get("sungrow-grid-pid-card")) {
+    customElements.define("sungrow-grid-pid-card", SungrowGridPidCard);
+  }
+
+  window.customCards = window.customCards || [];
+  if (!window.customCards.some((c) => c.type === "sungrow-grid-pid-card")) {
+    window.customCards.push({
+      type: "sungrow-grid-pid-card",
+      name: "Sungrow Grid PID",
+      description: "Control Sungrow grid export target and view PID status.",
+      preview: true,
+      documentationURL: "https://github.com/EvgenyKrinets/sungrow-grid-pid"
+    });
+  }
 }
 
-window.customCards = window.customCards || [];
-if (!window.customCards.some((c) => c.type === "sungrow-grid-pid-card")) {
-  window.customCards.push({
-    type: "sungrow-grid-pid-card",
-    name: "Sungrow Grid PID",
-    description: "Control Sungrow grid export target and view PID status.",
-    preview: true,
-    documentationURL: "https://github.com/EvgenyKrinets/sungrow-grid-pid"
-  });
-}
+registerSungrowGridPidCard();
+// Re-register after HA's frontend has finished bootstrapping. This avoids losing
+// the custom element if the scoped custom-element registry is installed later.
+window.addEventListener("load", () => setTimeout(registerSungrowGridPidCard, 1000), { once: true });
+setTimeout(registerSungrowGridPidCard, 2500);
