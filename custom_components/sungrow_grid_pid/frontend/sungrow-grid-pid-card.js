@@ -1,4 +1,4 @@
-const CARD_VERSION = "1.1.0";
+const CARD_VERSION = "1.1.1";
 
 class SungrowGridPidCard extends HTMLElement {
   constructor() {
