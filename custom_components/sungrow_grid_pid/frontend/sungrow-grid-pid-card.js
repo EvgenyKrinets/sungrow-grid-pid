@@ -1,6 +1,8 @@
-const CARD_VERSION = "1.4.0";
+const CARD_VERSION = "1.4.1";
 
 class SungrowGridPidCard extends HTMLElement {
+  static getStubConfig(){ return {}; }
+  static getConfigForm(){ return {schema:[]}; }
   constructor() { super(); this.attachShadow({mode:"open"}); this._config={}; this._hass=null; }
   static getStubConfig(){ return {}; }
   setConfig(c){ this._config=c||{}; this._render(); }
@@ -84,6 +86,6 @@ ${(!e.controller||!e.target)?'<div class="missing">Сущности PID не н�
 function registerSungrowGridPidCard(){
  if(!customElements.get("sungrow-grid-pid-card"))customElements.define("sungrow-grid-pid-card",SungrowGridPidCard);
  window.customCards=window.customCards||[];
- if(!window.customCards.some(c=>c.type==="sungrow-grid-pid-card"))window.customCards.push({type:"sungrow-grid-pid-card",name:"Sungrow Grid PID",description:"Визуальный контроль экспорта Sungrow в стиле оригинальной иллюстрации.",preview:true,documentationURL:"https://github.com/EvgenyKrinets/sungrow-grid-pid"});
+ if(!window.customCards.some(c=>c.type==="sungrow-grid-pid-card"))window.customCards.push({type:"sungrow-grid-pid-card",name:"Sungrow Grid PID",description:"Визуальный контроль экспорта Sungrow в стиле оригинальной иллюстрации.",preview:false,documentationURL:"https://github.com/EvgenyKrinets/sungrow-grid-pid"});
 }
 registerSungrowGridPidCard(); window.addEventListener("load",()=>setTimeout(registerSungrowGridPidCard,1000),{once:true}); setTimeout(registerSungrowGridPidCard,2500);
