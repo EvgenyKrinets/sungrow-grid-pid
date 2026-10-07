@@ -123,6 +123,14 @@ class GridPidController:
         self.notify()
 
 
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Register the dashboard card as soon as Home Assistant loads the integration."""
+    if not hass.data.get(f"{DOMAIN}_frontend_registered"):
+        await async_register_frontend(hass)
+        hass.data[f"{DOMAIN}_frontend_registered"] = True
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not hass.data.get(f"{DOMAIN}_frontend_registered"):
         await async_register_frontend(hass)
