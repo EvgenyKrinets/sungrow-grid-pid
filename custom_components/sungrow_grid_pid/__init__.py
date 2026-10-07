@@ -12,6 +12,7 @@ from .const import (
     CHARGE_CANDIDATES, DOMAIN, EXPORT_CANDIDATES, FORCED_DISCHARGE_OPTIONS,
     GAIN, INTERVAL_SECONDS, MODE_CANDIDATES,
 )
+from .frontend import async_register_frontend
 
 _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["number", "sensor", "switch"]
@@ -123,6 +124,9 @@ class GridPidController:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    if not hass.data.get(f"{DOMAIN}_frontend_registered"):
+        await async_register_frontend(hass)
+        hass.data[f"{DOMAIN}_frontend_registered"] = True
     controller = GridPidController(hass)
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = controller
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
