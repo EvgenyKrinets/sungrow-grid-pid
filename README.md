@@ -2,83 +2,21 @@
 
 # ⚡ Sungrow Grid PID
 
-### Smart grid-export control for Home Assistant + Sungrow
+### Компактный PID-контроллер экспорта Sungrow для Home Assistant
 
-![Version](https://img.shields.io/badge/version-v1.2.0-0878d1?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-v1.6.1-0878d1?style=for-the-badge)
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Custom%20Integration-41BDF5?style=for-the-badge)
 ![HACS](https://img.shields.io/badge/HACS-Compatible-7B42BC?style=for-the-badge)
 
-**Keep export close to your chosen limit and send the extra solar power to the battery instead of wasting it.**
+**Держит реальный экспорт около заданного значения и регулирует мощность зарядки батареи.**
 
 </div>
 
-![How Sungrow Grid PID works](docs/how-it-works.svg)
+## Что делает интеграция
 
-## 🌞 What does it do?
+Контроллер раз в секунду читает реальный экспорт Sungrow, сравнивает его с **PID Grid Target** и изменяет команду максимальной мощности зарядки батареи.
 
-Imagine your grid export limit is **15,000 W**. Your solar system is producing power for the house, the grid and the battery.
-
-Sungrow Grid PID watches the **real export power** every second. It compares that value with your **Grid Target** and changes the battery charge command so the export stays close to the target.
-
-> **In simple words:** export first at the level you choose; use the battery to absorb the excess.
-
-### Example
-
-If the target is **15,000 W** and export rises above it, the controller increases battery charging. If export falls below the target, it reduces battery charging. This continuously follows changes in solar production and house consumption.
-
-## 🔄 Simple operating principle
-
-| Step | What happens |
-|---|---|
-| **1 · Measure** | Reads the real Sungrow grid export power. |
-| **2 · Compare** | Compares export with your Grid Target. |
-| **3 · Correct** | Raises or lowers the battery charge command. |
-| **4 · Repeat** | Recalculates every **1 second**. |
-
-## 🎯 Why use it?
-
-☀️ **Use more available solar energy** — excess power can charge the battery instead of simply being curtailed.
-
-⚡ **Keep export near your chosen value** — useful when the utility/grid connection has an export limit.
-
-🔋 **Charge the battery from surplus** — battery charge is dynamically adjusted according to the export error.
-
-🏠 **React to house load changes** — when the house suddenly consumes more or less, the controller continuously corrects its output.
-
-## 🎛️ Dashboard card
-
-The integration includes its own **Sungrow Grid PID** Lovelace card. After installation you can add it to any Home Assistant dashboard.
-
-The card provides:
-- **PID Controller** ON/OFF
-- **Grid Target** slider
-- current **Grid Export**
-- **PID Output**
-- **Grid Error**
-- **Battery Charge Command**
-- Running/Stopped status
-- installed version
-
-## 🚀 Installation with HACS
-
-1. Open **HACS → Integrations → ⋮ → Custom repositories**.
-2. Add `EvgenyKrinets/sungrow-grid-pid` as **Integration**.
-3. Install **Sungrow Grid PID**.
-4. Restart Home Assistant.
-5. Go to **Settings → Devices & services → Add integration → Sungrow Grid PID**.
-6. Open any dashboard → **Edit → Add card → Sungrow Grid PID**.
-
-No manual YAML card and no manual PID entity IDs are required.
-
-## 🔋 What happens when PID is enabled?
-
-When **PID Controller** is turned on, the integration remembers the current battery mode and selects **Force discharge / Forced discharge** as required by the Sungrow control method used by this controller.
-
-When PID Controller is turned off normally, the previous battery mode is restored.
-
-## 🧠 The algorithm
-
-The control logic intentionally remains simple:
+Если экспорт выше цели — разрешённая мощность зарядки увеличивается. Если экспорт ниже цели — уменьшается.
 
 ```text
 error  = export_power - grid_target
@@ -86,37 +24,69 @@ output = previous_output + error × 0.10
 output = clamp(output, 0, 25000 W)
 ```
 
-The calculation runs once per second.
+## Компактная карточка
 
-For example, if actual export is higher than the target, the output rises and allows more battery charging. If actual export is lower, the output falls.
+Встроенная карточка **Sungrow Grid PID** предназначена именно для ежедневного управления и показывает только необходимое:
 
-## 🧩 Requirements
+- переключатель **PID Controller ON/OFF**;
+- слайдер **Целевой экспорт**;
+- **Реальный экспорт**;
+- **Задание на заряд батареи**.
 
-- Home Assistant
-- [Sungrow iSolarCloud integration](https://github.com/KRoperUK/sungrow-hass)
-- local Sungrow/Modbus export-power entity
-- battery charge-power control entity
+Во время перемещения слайдера новое значение показывается сразу. После отпускания оно записывается в PID Grid Target.
 
-## 📡 Entities created
+Нажатие на **Целевой экспорт** или его значение открывает стандартное окно Home Assistant для сущности Target. Там доступны история и настройки helper. Минимум, максимум и шаг слайдера задаются в самой сущности PID Grid Target.
 
-| Entity | Purpose |
+Нажатие на **Реальный экспорт** или **Задание на заряд батареи** открывает стандартное окно соответствующей сущности с историей/графиком.
+
+## Что происходит при включении PID
+
+При включении PID интеграция сначала активирует сцену:
+
+`scene.self_consumption_mode_max_battery_discharge`
+
+После этого запускается PID-регулятор и продолжает использовать требуемый режим управления батареей Sungrow.
+
+При обычном выключении PID контроллер останавливается. Текущая версия не активирует другую сцену при выключении.
+
+## Установка через HACS
+
+1. Добавьте `EvgenyKrinets/sungrow-grid-pid` в **HACS → Custom repositories** как **Integration**.
+2. Установите **Sungrow Grid PID**.
+3. Перезапустите Home Assistant.
+4. Добавьте интеграцию **Sungrow Grid PID** в **Settings → Devices & services**.
+5. На любом Dashboard выберите **Edit → Add card → Sungrow Grid PID**.
+
+Карточка работает и на телефоне, и на компьютере.
+
+## Сущности
+
+| Сущность | Назначение |
 |---|---|
-| **PID Grid Controller** | Starts/stops the controller |
-| **PID Grid Target** | Desired grid export, 0–25,000 W |
-| **PID Output** | Current controller output |
-| **PID Grid Error** | Difference between real export and target |
-| **Sungrow Grid PID Version** | Installed integration version |
+| **PID Grid Controller** | Включение/выключение PID |
+| **PID Grid Target** | Желаемый экспорт |
+| **PID Output** | Текущая команда регулятора |
+| **PID Grid Error** | Отклонение реального экспорта от цели |
+| **Sungrow Grid PID Version** | Версия интеграции |
 
-## ⚠️ Current control philosophy
+## Требования
 
-Version **1.2.0** deliberately keeps the controller behavior already tested in the original Home Assistant automation. It does **not** add adaptive surplus search, Import Guard, D-term or other automatic control strategies.
+- Home Assistant;
+- Sungrow iSolarCloud / локальные Sungrow entities;
+- сенсор реального export power;
+- сущность управления максимальной мощностью зарядки батареи;
+- сцена `scene.self_consumption_mode_max_battery_discharge` для автоматической подготовки режима при запуске PID.
+
+## Алгоритм и ограничения
+
+Версия **1.6.1** сохраняет простой алгоритм, уже использовавшийся в исходной Home Assistant automation. Здесь специально не добавлены Search, Import Guard, D-term и другие дополнительные стратегии.
 
 ---
 
 <div align="center">
 
-### Sungrow Grid PID · v1.2.0
+### Sungrow Grid PID · v1.6.1
 
-Made for local, fast Sungrow control in Home Assistant.
+Компактное управление экспортом и зарядкой батареи.
 
 </div>
