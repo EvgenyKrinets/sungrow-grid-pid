@@ -1,8 +1,10 @@
-"""Config flow with prefilled Sungrow entities and validation."""
+"""Config flow: native entity dropdowns with Sungrow defaults and validation."""
 from __future__ import annotations
 
+import math
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.helpers import selector
 
 from .const import DOMAIN
 
@@ -13,27 +15,51 @@ DEFAULTS = {
 }
 
 
-def schema(data):
+def schema(values):
+    """HA entity selectors show searchable entity pickers instead of free text."""
     return vol.Schema({
-        vol.Required("export_entity", default=data.get("export_entity", DEFAULTS["export_entity"])): str,
-        vol.Required("charge_entity", default=data.get("charge_entity", DEFAULTS["charge_entity"])): str,
-        vol.Required("scene_entity", default=data.get("scene_entity", DEFAULTS["scene_entity"])): str,
+        vol.Required("export_entity", default=values.get("export_entity", DEFAULTS["export_entity"])):
+            selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
+        vol.Required("charge_entity", default=values.get("charge_entity", DEFAULTS["charge_entity"])):
+            selector.EntitySelector(selector.EntitySelectorConfig(domain="number")),
+        vol.Required("scene_entity", default=values.get("scene_entity", DEFAULTS["scene_entity"])):
+            selector.EntitySelector(selector.EntitySelectorConfig(domain="scene")),
     })
 
 
 def verify(hass, values):
-    if not values["export_entity"].startswith("sensor.") or hass.states.get(values["export_entity"]) is None:
-        return {"export_entity": "entity_not_found"}
-    if not values["charge_entity"].startswith("number.") or hass.states.get(values["charge_entity"]) is None:
-        return {"charge_entity": "entity_not_found"}
-    scene = values["scene_entity"]
-    if scene and (not scene.startswith("scene.") or hass.states.get(scene) is None):
-        return {"scene_entity": "entity_not_found"}
-    return {}
+    """Reject wrong domains, absent/unavailable or nonnumeric power entities."""
+    errors = {}
+    for key, domain in (
+        ("export_entity", "sensor"),
+        ("charge_entity", "number"),
+        ("scene_entity", "scene"),
+    ):
+        entity = values.get(key, "")
+        state = hass.states.get(entity)
+        if not entity.startswith(domain + ".") or state is None:
+            errors[key] = "entity_not_found"
+        elif state.state in ("unknown", "unavailable") and key != "scene_entity":
+            errors[key] = "entity_unavailable"
+        elif key == "export_entity":
+            try:
+                if not math.isfinite(float(state.state)):
+                    errors[key] = "entity_not_numeric"
+            except (ValueError, TypeError):
+                errors[key] = "entity_not_numeric"
+        elif key == "charge_entity":
+            try:
+                minimum = float(state.attributes.get("min", 0))
+                maximum = float(state.attributes.get("max", 0))
+                if not (math.isfinite(minimum) and math.isfinite(maximum) and maximum >= 25000):
+                    errors[key] = "charge_range"
+            except (ValueError, TypeError):
+                errors[key] = "charge_range"
+    return errors
 
 
 class SungrowGridPidConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    VERSION = 3
+    VERSION = 4
 
     async def async_step_user(self, user_input=None):
         if self._async_current_entries():
