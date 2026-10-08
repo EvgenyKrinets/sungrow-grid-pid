@@ -92,6 +92,48 @@ async def install_helpers(hass):
     return True
 
 
+async def install_dashboard(hass):
+    """Create a dedicated dashboard containing the PID controller card."""
+    from homeassistant.components import frontend
+    from homeassistant.components.lovelace import dashboard
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    data = hass.data.get(LOVELACE_DATA)
+    if data is None or "sungrow-grid-pid" in data.dashboards:
+        return
+
+    dashboards = dashboard.DashboardsCollection(hass)
+    await dashboards.async_load()
+    if any(item.get("url_path") == "sungrow-grid-pid" for item in dashboards.async_items()):
+        return
+
+    item = await dashboards.async_create_item({
+        "url_path": "sungrow-grid-pid",
+        "title": "Sungrow Grid PID",
+        "icon": "mdi:solar-power",
+        "show_in_sidebar": True,
+        "require_admin": False,
+    })
+    page = dashboard.LovelaceStorage(hass, item)
+    await page.async_save({
+        "title": "Sungrow Grid PID",
+        "views": [{
+            "title": "PID",
+            "path": "pid",
+            "cards": [{"type": "custom:sungrow-grid-pid-card"}],
+        }],
+    })
+    data.dashboards["sungrow-grid-pid"] = page
+    if not frontend.async_panel_exists(hass, "sungrow-grid-pid"):
+        frontend.async_register_built_in_panel(
+            hass, "lovelace",
+            frontend_url_path="sungrow-grid-pid",
+            require_admin=False, show_in_sidebar=True,
+            sidebar_title="Sungrow Grid PID", sidebar_icon="mdi:solar-power",
+            config={"mode": "storage"},
+        )
+
+
 async def install(hass, entry):
     created_helpers = await install_helpers(hass)
     automation = make_automation(
@@ -102,4 +144,8 @@ async def install(hass, entry):
     result = await hass.async_add_executor_job(write_automation, hass.config.path("automations.yaml"), automation)
     if result == "created" and not created_helpers:
         await hass.services.async_call("automation", "reload", {}, blocking=True)
+    try:
+        await install_dashboard(hass)
+    except Exception:
+        _LOGGER.exception("Dashboard creation failed; helpers and automation remain installed")
     return result, created_helpers
