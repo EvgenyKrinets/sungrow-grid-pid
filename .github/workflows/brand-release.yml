@@ -1,6 +1,6 @@
 name: Build brand and release
 # Generates HA 2026.3+ local branding and publishes semantic release.
-# Release target: dynamic manifest.json version; v3.0.6 entity selector validation and automation card control
+# Release target: dynamic manifest.json version; v3.0.7 config entry migration handler
 # Visual dashboard release trigger
 # Publish version from manifest.json; never retag old releases
 
