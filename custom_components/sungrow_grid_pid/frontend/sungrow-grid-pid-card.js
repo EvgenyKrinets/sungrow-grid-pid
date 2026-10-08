@@ -1,7 +1,7 @@
 const CARD_VERSION="3.0.0";
 
 class SungrowGridPidCardEditor extends HTMLElement {
-  set hass(h){ this._hass=h; this._render(); }
+  set hass(h){ const first=!this._hass; this._hass=h; if(first) this._render(); }
   setConfig(c){ this._config=c||{}; this._render(); }
   _render(){
     if(!this._hass) return;
@@ -20,7 +20,7 @@ class SungrowGridPidCardEditor extends HTMLElement {
       <div class="row"><label>Задание зарядки батареи</label><select data-k="charge_entity"><option value="">number.battery_max_charge_power</option>${options("number","charge_entity")}</select></div>
     `;
     this.querySelectorAll("select").forEach(el=>el.onchange=()=>{
-      this._config={...cfg,[el.dataset.k]:el.value||undefined};
+      this._config={...this._config,[el.dataset.k]:el.value||undefined};
       this.dispatchEvent(new CustomEvent("config-changed",{detail:{config:this._config},bubbles:true,composed:true}));
     });
   }
@@ -48,7 +48,7 @@ class SungrowGridPidCard extends HTMLElement {
       const hay=(id+" "+String(s.attributes.friendly_name||"")).toLowerCase();
       if(contains.length && contains.every(k=>hay.includes(k))) return id;
     }
-    return null;
+    return preferred||null;
   }
 
   _entities(){
@@ -70,8 +70,8 @@ class SungrowGridPidCard extends HTMLElement {
     if(!this.shadowRoot || !this._hass) return;
     const e=this._entities();
     const on=this._state(e.controller)==="on";
-    const controllerFound=!!e.controller;
-    const switchState=e.controller?this._state(e.controller):"not found";
+    const controllerFound=!!(e.controller && this._hass.states[e.controller]);
+
     const targetState=e.target?this._hass.states[e.target]:null;
     const target=this._num(e.target)??15000;
     const min=Number(targetState?.attributes.min??0);
@@ -111,7 +111,7 @@ class SungrowGridPidCard extends HTMLElement {
           <div class="stat" id="chargeStat"><div class="label">Задание зарядки батареи</div><div class="value">${this._fmt(e.charge)}</div></div>
         </div>
 
-        ${(!e.controller||!e.target)?'<div class="missing">Не найдена автоматизация Simple Grid Battery Controller или helper PID Grid Target. Проверьте идентификаторы в настройках карточки.</div>':""}
+        ${(!controllerFound||!targetState)?'<div class="missing">Не найдена автоматизация Simple Grid Battery Controller или helper PID Grid Target. Проверьте идентификаторы в настройках карточки.</div>':""}
       </ha-card>
     `;
 
