@@ -1,4 +1,4 @@
-from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.const import UnitOfPower
 
 from .const import DOMAIN, VERSION
