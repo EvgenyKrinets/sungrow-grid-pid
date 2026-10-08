@@ -134,8 +134,11 @@ class GridPidController:
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     if not hass.data.get(f"{DOMAIN}_frontend_registered"):
-        await async_register_frontend(hass)
-        hass.data[f"{DOMAIN}_frontend_registered"] = True
+        try:
+            await async_register_frontend(hass)
+            hass.data[f"{DOMAIN}_frontend_registered"] = True
+        except Exception:
+            _LOGGER.exception("Unable to register PID frontend; integration remains manageable")
     return True
 
 
@@ -156,10 +159,10 @@ async def _async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    controller = hass.data[DOMAIN][entry.entry_id]
-    if controller.enabled:
+    controller = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if controller is not None and controller.enabled:
         await controller.disable()
     ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if ok:
-        hass.data[DOMAIN].pop(entry.entry_id, None)
+        hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
     return ok
