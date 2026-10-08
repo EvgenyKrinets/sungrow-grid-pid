@@ -1,10 +1,29 @@
 {
   "config": {
-    "step": {"user": {"title": "Sungrow Grid PID", "description": "Sungrow обнаружен. Нажмите Отправить для установки Grid PID."}},
+    "step": {
+      "user": {
+        "title": "Sungrow Grid PID",
+        "description": "Установка контроллера на основе исходной автоматизации Simple Grid Battery Controller. Интеграция автоматически создаст PID Grid Target, PID Integral, PID Output, PID Grid Error и PID Grid Controller."
+      }
+    },
     "abort": {
-      "single_instance_allowed": "Sungrow Grid PID уже установлен.",
-      "sungrow_not_found": "Интеграция Sungrow не найдена. Сначала установите и настройте Sungrow.",
-      "required_entities_not_found": "Не найдены необходимые сущности Export Power или Battery Charge Power."
+      "single_instance_allowed": "Sungrow Grid PID уже установлен."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Настройки Sungrow Grid PID",
+        "description": "Здесь можно изменить сущности Sungrow и лимиты слайдера PID Grid Target.",
+        "data": {
+          "export_entity": "Реальный экспорт в сеть",
+          "charge_entity": "Максимальная мощность зарядки батареи",
+          "scene_entity": "Сцена при включении PID",
+          "target_min": "Минимум Grid Target",
+          "target_max": "Максимум Grid Target",
+          "target_step": "Шаг Grid Target"
+        }
+      }
     }
   }
 }
