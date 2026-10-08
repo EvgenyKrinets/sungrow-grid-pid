@@ -13,7 +13,7 @@ from .const import VERSION
 
 _LOGGER = logging.getLogger(__name__)
 CARD_PATH = Path(__file__).parent / "frontend" / "sungrow-grid-pid-card.js"
-CARD_STATIC_URL = "/sungrow_grid_pid/sungrow-grid-pid-card.js"
+CARD_STATIC_URL = f"/sungrow_grid_pid/{VERSION}/sungrow-grid-pid-card.js"
 CARD_URL = f"{CARD_STATIC_URL}?v={VERSION}"
 
 
@@ -30,7 +30,7 @@ async def _try_register_resource(hass: HomeAssistant) -> bool:
 
     for item in resources.async_items():
         url = str(item.get("url", ""))
-        if url.split("?")[0] == CARD_STATIC_URL:
+        if url.split("?")[0].startswith("/sungrow_grid_pid/") and url.split("?")[0].endswith("/sungrow-grid-pid-card.js") or url.split("?")[0] == "/sungrow_grid_pid/sungrow-grid-pid-card.js":
             if url != CARD_URL and hasattr(resources, "async_update_item"):
                 await resources.async_update_item(
                     item["id"], {"res_type": "module", "url": CARD_URL}
