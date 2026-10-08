@@ -20,12 +20,32 @@ class SungrowGridPidConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None):
         if self._async_current_entries():
-            return self.async_abort(reason="single_instance_allowed")
+            return await self.async_step_remove()
 
         if user_input is not None:
             return self.async_create_entry(title="Sungrow Grid PID", data={})
 
         return self.async_show_form(step_id="user", data_schema=vol.Schema({}))
+
+    async def async_step_remove(self, user_input=None):
+        """Recovery wizard for an orphaned/hidden configuration entry.
+
+        Home Assistant may still have an entry even when the integration is not
+        visible among loaded integrations. Only delete after explicit confirmation.
+        """
+        if user_input is None:
+            return self.async_show_form(
+                step_id="remove",
+                data_schema=vol.Schema({vol.Required("confirm", default=False): bool}),
+            )
+
+        if not user_input.get("confirm"):
+            return self.async_abort(reason="removal_cancelled")
+
+        entries = self._async_current_entries()
+        for entry in entries:
+            await self.hass.config_entries.async_remove(entry.entry_id)
+        return self.async_abort(reason="removed_successfully")
 
     @staticmethod
     def async_get_options_flow(config_entry):
