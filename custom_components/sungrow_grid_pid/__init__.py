@@ -64,10 +64,17 @@ class GridPidController:
             return
 
         scene_id = self.scene_entity
-        if scene_id and self.hass.states.get(scene_id) is not None:
-            await self.hass.services.async_call(
-                "scene", "turn_on", {"entity_id": scene_id}, blocking=True
-            )
+        if scene_id:
+            if self.hass.states.get(scene_id) is None:
+                _LOGGER.warning("PID start: configured Sungrow scene %s not found", scene_id)
+            else:
+                try:
+                    await self.hass.services.async_call(
+                        "scene", "turn_on", {"entity_id": scene_id}, blocking=True
+                    )
+                except Exception:
+                    _LOGGER.exception("PID start failed to activate Sungrow scene %s", scene_id)
+                    raise
 
         # Same starting point as input_number.pid_integral in the original automation.
         self.output = float(self.integral)
@@ -75,6 +82,7 @@ class GridPidController:
         self._cancel = async_track_time_interval(
             self.hass, self._tick, timedelta(seconds=INTERVAL_SECONDS)
         )
+        _LOGGER.info("Sungrow Grid PID enabled with export=%s charge=%s scene=%s", self.export_entity, self.charge_entity, scene_id)
         self.notify()
 
     async def disable(self) -> None:
