@@ -1,4 +1,4 @@
-const CARD_VERSION="3.0.6";
+const CARD_VERSION="3.0.7";
 
 class SungrowGridPidCardEditor extends HTMLElement {
   set hass(h){ this._hass=h; if(!this._rendered) this._render(); }
