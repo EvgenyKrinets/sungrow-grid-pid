@@ -4,10 +4,19 @@
       "user": {
         "title": "Sungrow Grid PID",
         "description": "Installs the controller based on the original Simple Grid Battery Controller automation and automatically creates all PID entities."
+      },
+      "remove": {
+        "title": "Remove Sungrow Grid PID",
+        "description": "An existing Sungrow Grid PID entry was found, even if it is hidden from the integrations list. Confirm removal of the entry and its entities. Other integrations will not be affected.",
+        "data": {
+          "confirm": "Yes, remove Sungrow Grid PID"
+        }
       }
     },
     "abort": {
-      "single_instance_allowed": "Sungrow Grid PID is already installed."
+      "single_instance_allowed": "Sungrow Grid PID is already installed.",
+      "removed_successfully": "Sungrow Grid PID entry removed. You can uninstall its files through HACS.",
+      "removal_cancelled": "Removal cancelled."
     }
   },
   "options": {
