@@ -94,6 +94,7 @@ async def install_helpers(hass):
 
 async def install_dashboard(hass):
     """Create a dedicated dashboard containing the PID controller card."""
+    from homeassistant.components import frontend
     from homeassistant.components.lovelace import dashboard
     from homeassistant.components.lovelace.const import LOVELACE_DATA
 
@@ -123,6 +124,13 @@ async def install_dashboard(hass):
         }],
     })
     data.dashboards["sungrow-grid-pid"] = page
+    if not frontend.async_panel_exists(hass, "sungrow-grid-pid"):
+        frontend.async_register_built_in_panel(
+            hass, "lovelace", frontend_url_path="sungrow-grid-pid",
+            require_admin=False, show_in_sidebar=True,
+            sidebar_title="Sungrow Grid PID", sidebar_icon="mdi:solar-power",
+            config={"mode": "storage"},
+        )
 
 
 async def install(hass, entry):
@@ -133,7 +141,7 @@ async def install(hass, entry):
         entry.options.get("scene_entity", entry.data.get("scene_entity", "scene.self_consumption_mode_max_battery_discharge")),
     )
     result = await hass.async_add_executor_job(write_automation, hass.config.path("automations.yaml"), automation)
-    if result == "created":
+    if result in ("created", "existing_manual"):
         await hass.services.async_call("automation", "reload", {}, blocking=True)
     try:
         await install_dashboard(hass)
