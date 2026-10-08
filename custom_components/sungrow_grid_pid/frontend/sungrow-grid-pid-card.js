@@ -1,4 +1,4 @@
-const CARD_VERSION="3.0.7";
+const CARD_VERSION="3.0.8";
 
 class SungrowGridPidCardEditor extends HTMLElement {
   set hass(h){ this._hass=h; if(!this._rendered) this._render(); }
@@ -144,7 +144,7 @@ class SungrowGridPidCard extends HTMLElement {
       btn.disabled=true;
       status.textContent="Sungrow Grid PID · "+(on?"Отключение...":"Включение...");
       try {
-        await this._call("automation",on?"turn_off":"turn_on",{entity_id:e.controller,skip_condition:true});
+        await this._call("automation",on?"turn_off":"turn_on",{entity_id:e.controller});
         const actual=this._state(e.controller);
         status.textContent="Sungrow Grid PID · "+(actual==="on"?"Running":actual==="off"?"Stopped":"Статус: "+actual);
         if(actual!==(on?"off":"on"))status.textContent+=" · проверьте журнал Home Assistant";
