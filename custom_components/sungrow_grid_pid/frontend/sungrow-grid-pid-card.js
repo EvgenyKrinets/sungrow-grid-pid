@@ -1,8 +1,15 @@
-const CARD_VERSION="3.0.1";
+const CARD_VERSION="3.0.2";
 
 class SungrowGridPidCardEditor extends HTMLElement {
-  set hass(h){ const first=!this._hass; this._hass=h; if(first) this._render(); }
-  setConfig(c){ this._config=c||{}; this._render(); }
+  set hass(h){ this._hass=h; if(!this._rendered) this._render(); }
+  setConfig(c){
+    this._config=c||{};
+    if(!this._rendered) this._render();
+    else this.querySelectorAll("select[data-k]").forEach(el=>{
+      if(el!==document.activeElement && el.value!==(this._config[el.dataset.k]||""))
+        el.value=this._config[el.dataset.k]||"";
+    });
+  }
   _render(){
     if(!this._hass) return;
     const cfg=this._config||{};
@@ -19,6 +26,7 @@ class SungrowGridPidCardEditor extends HTMLElement {
       <div class="row"><label>Реальный экспорт</label><select data-k="export_entity"><option value="">sensor.export_power</option>${options("sensor","export_entity")}</select></div>
       <div class="row"><label>Задание зарядки батареи</label><select data-k="charge_entity"><option value="">number.battery_max_charge_power</option>${options("number","charge_entity")}</select></div>
     `;
+    this._rendered=true;
     this.querySelectorAll("select").forEach(el=>el.onchange=()=>{
       this._config={...this._config,[el.dataset.k]:el.value||undefined};
       this.dispatchEvent(new CustomEvent("config-changed",{detail:{config:this._config},bubbles:true,composed:true}));
