@@ -1,8 +1,8 @@
 name: Build brand and release
 # Generates HA 2026.3+ local branding and publishes semantic release.
-# Release target: 2.0.5
+# Release target: dynamic manifest.json version
 # Visual dashboard release trigger
-# v2.0.5 exact-reference dashboard and Lovelace timing fix
+# Publish version from manifest.json; never retag old releases
 
 on:
   push:
@@ -54,11 +54,18 @@ jobs:
           git add custom_components/sungrow_grid_pid/brand
           git diff --cached --quiet || git commit -m "Add Home Assistant local brand assets"
           git push
-      - name: Publish v2.0.5 release
+      - name: Publish version from manifest.json
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git fetch origin main
-          git tag -f v2.0.5 origin/main
-          git push -f origin v2.0.5
-          gh release view v2.0.5 >/dev/null 2>&1 || gh release create v2.0.5 --title "Sungrow Grid PID v2.0.5" --notes "Fix install registration, automation reload and card selector dropdown."
+          set -euo pipefail
+          VERSION=$(python -c 'import json; print(json.load(open("custom_components/sungrow_grid_pid/manifest.json"))["version"])')
+          TAG="v${VERSION}"
+          git fetch origin main --tags
+          if ! git rev-parse "${TAG}" >/dev/null 2>&1; then
+            git tag "${TAG}" origin/main
+            git push origin "${TAG}"
+          fi
+          if ! gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release create "${TAG}" --title "Sungrow Grid PID ${TAG}" --notes "Home Assistant editable PID automation and helper installer; selector and registration fixes."
+          fi
