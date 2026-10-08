@@ -1,4 +1,4 @@
-const CARD_VERSION="3.0.2";
+const CARD_VERSION="3.0.3";
 
 class SungrowGridPidCardEditor extends HTMLElement {
   set hass(h){ this._hass=h; if(!this._rendered) this._render(); }
@@ -49,7 +49,7 @@ class SungrowGridPidCard extends HTMLElement {
     if(preferred && this._hass.states[preferred]) return preferred;
     const states=Object.entries(this._hass.states).filter(([id])=>id.startsWith(domain+"."));
     for(const [id,s] of states){
-      const f=String(s.attributes.friendly_name||"").toLowerCase();
+      const f=String(s.attributes.friendly_name||"").trim().toLowerCase();
       if(names.some(n=>f===n.toLowerCase())) return id;
     }
     for(const [id,s] of states){
@@ -79,6 +79,7 @@ class SungrowGridPidCard extends HTMLElement {
     const e=this._entities();
     const on=this._state(e.controller)==="on";
     const controllerFound=!!(e.controller && this._hass.states[e.controller]);
+    const foundAutomations=Object.entries(this._hass.states).filter(([id])=>id.startsWith("automation.") && (id.includes("grid")||id.includes("pid")||id.includes("battery")||id.includes("sungrow"))).map(([id])=>id);
 
     const targetState=e.target?this._hass.states[e.target]:null;
     const target=this._num(e.target)??15000;
@@ -104,7 +105,7 @@ class SungrowGridPidCard extends HTMLElement {
       </style>
       <ha-card>
         <div class="top">
-          <div><div class="title">PID Grid Target</div><div class="sub" id="pidStatus">Sungrow Grid PID · ${on?"Running":"Stopped"}${controllerFound?"":" · switch not found"}</div></div>
+          <div><div class="title">PID Grid Target</div><div class="sub" id="pidStatus">Sungrow Grid PID · ${on?"Running":"Stopped"}${controllerFound?"":" · automation not found"}</div></div>
           <button id="toggle" class="toggle ${on?"on":""}" ${controllerFound?"":"disabled"} title="${e.controller||"Switch not found"}"><span class="knob"></span></button>
         </div>
 
@@ -119,7 +120,7 @@ class SungrowGridPidCard extends HTMLElement {
           <div class="stat" id="chargeStat"><div class="label">Задание зарядки батареи</div><div class="value">${this._fmt(e.charge)}</div></div>
         </div>
 
-        ${(!controllerFound||!targetState)?'<div class="missing">Не найдена автоматизация Simple Grid Battery Controller или helper PID Grid Target. Проверьте идентификаторы в настройках карточки.</div>':""}
+        ${(!controllerFound||!targetState)?'<div class="missing">Не найдена автоматизация или PID Grid Target. Автоматизации-кандидаты: ${foundAutomations.length?foundAutomations.join(", "):"нет"}. Проверьте YAML и настройки карточки.</div>':""}
       </ha-card>
     `;
 
