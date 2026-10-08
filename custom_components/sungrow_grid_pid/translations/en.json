@@ -1,10 +1,29 @@
 {
   "config": {
-    "step": {"user": {"title": "Sungrow Grid PID", "description": "Sungrow detected. Press Submit to install the Grid PID controller."}},
+    "step": {
+      "user": {
+        "title": "Sungrow Grid PID",
+        "description": "Installs the controller based on the original Simple Grid Battery Controller automation and automatically creates all PID entities."
+      }
+    },
     "abort": {
-      "single_instance_allowed": "Sungrow Grid PID is already installed.",
-      "sungrow_not_found": "Sungrow integration was not found.",
-      "required_entities_not_found": "Required Sungrow entities were not found."
+      "single_instance_allowed": "Sungrow Grid PID is already installed."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Sungrow Grid PID settings",
+        "description": "Change Sungrow entities and PID Grid Target slider limits.",
+        "data": {
+          "export_entity": "Real grid export entity",
+          "charge_entity": "Battery max charge power entity",
+          "scene_entity": "Scene activated when PID starts",
+          "target_min": "Grid Target minimum",
+          "target_max": "Grid Target maximum",
+          "target_step": "Grid Target step"
+        }
+      }
     }
   }
 }
