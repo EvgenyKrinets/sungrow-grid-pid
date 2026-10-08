@@ -1,92 +1,113 @@
 <div align="center">
 
-# ⚡ Sungrow Grid PID
+# ⚡ Sungrow Grid PID v2.0.0
 
-### Компактный PID-контроллер экспорта Sungrow для Home Assistant
+### Контроллер экспорта Sungrow на базе исходной Home Assistant automation
 
-![Version](https://img.shields.io/badge/version-v1.6.1-0878d1?style=for-the-badge)
-![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Custom%20Integration-41BDF5?style=for-the-badge)
-![HACS](https://img.shields.io/badge/HACS-Compatible-7B42BC?style=for-the-badge)
-
-**Держит реальный экспорт около заданного значения и регулирует мощность зарядки батареи.**
+**Версия 2 полностью перестроена вокруг проверенного скрипта `Simple Grid Battery Controller`.**
 
 </div>
 
-## Что делает интеграция
+## Что изменилось в v2
 
-Контроллер раз в секунду читает реальный экспорт Sungrow, сравнивает его с **PID Grid Target** и изменяет команду максимальной мощности зарядки батареи.
-
-Если экспорт выше цели — разрешённая мощность зарядки увеличивается. Если экспорт ниже цели — уменьшается.
+Интеграция больше не пытается реализовывать отдельную сложную PID-логику. Она повторяет исходный алгоритм:
 
 ```text
-error  = export_power - grid_target
-output = previous_output + error × 0.10
-output = clamp(output, 0, 25000 W)
+grid       = sensor.export_power
+target     = PID Grid Target
+output_old = PID Integral
+
+error      = grid - target
+output_new = clamp(output_old + error × 0.10, 0, 25000 W)
+
+number.battery_max_charge_power = output_new
+PID Integral                    = output_new
 ```
 
-## Компактная карточка
+Цикл выполняется раз в **1 секунду**. Если предыдущий цикл ещё не завершён, новый пропускается — аналогично `mode: single` и `max_exceeded: silent`.
 
-Встроенная карточка **Sungrow Grid PID** предназначена именно для ежедневного управления и показывает только необходимое:
+## Что создаётся автоматически
 
-- переключатель **PID Controller ON/OFF**;
-- слайдер **Целевой экспорт**;
-- **Реальный экспорт**;
-- **Задание на заряд батареи**.
-
-Во время перемещения слайдера новое значение показывается сразу. После отпускания оно записывается в PID Grid Target.
-
-Нажатие на **Целевой экспорт** или его значение открывает стандартное окно Home Assistant для сущности Target. Там доступны история и настройки helper. Минимум, максимум и шаг слайдера задаются в самой сущности PID Grid Target.
-
-Нажатие на **Реальный экспорт** или **Задание на заряд батареи** открывает стандартное окно соответствующей сущности с историей/графиком.
-
-## Что происходит при включении PID
-
-При включении PID интеграция сначала активирует сцену:
-
-`scene.self_consumption_mode_max_battery_discharge`
-
-После этого запускается PID-регулятор и продолжает использовать требуемый режим управления батареей Sungrow.
-
-При обычном выключении PID контроллер останавливается. Текущая версия не активирует другую сцену при выключении.
-
-## Установка через HACS
-
-1. Добавьте `EvgenyKrinets/sungrow-grid-pid` в **HACS → Custom repositories** как **Integration**.
-2. Установите **Sungrow Grid PID**.
-3. Перезапустите Home Assistant.
-4. Добавьте интеграцию **Sungrow Grid PID** в **Settings → Devices & services**.
-5. На любом Dashboard выберите **Edit → Add card → Sungrow Grid PID**.
-
-Карточка работает и на телефоне, и на компьютере.
-
-## Сущности
+После установки интеграция сама создаёт все необходимые PID-сущности:
 
 | Сущность | Назначение |
 |---|---|
-| **PID Grid Controller** | Включение/выключение PID |
-| **PID Grid Target** | Желаемый экспорт |
-| **PID Output** | Текущая команда регулятора |
-| **PID Grid Error** | Отклонение реального экспорта от цели |
-| **Sungrow Grid PID Version** | Версия интеграции |
+| **PID Grid Controller** | Включение / выключение PID |
+| **PID Grid Target** | Желаемая отдача в сеть |
+| **PID Integral** | Память предыдущего выхода регулятора |
+| **PID Grid Error** | Реальный экспорт минус Grid Target |
+| **PID Output** | Текущее задание регулятора |
 
-## Требования
+Внешние сущности Sungrow по умолчанию:
 
-- Home Assistant;
-- Sungrow iSolarCloud / локальные Sungrow entities;
-- сенсор реального export power;
-- сущность управления максимальной мощностью зарядки батареи;
-- сцена `scene.self_consumption_mode_max_battery_discharge` для автоматической подготовки режима при запуске PID.
+- `sensor.export_power`
+- `number.battery_max_charge_power`
+- `scene.self_consumption_mode_max_battery_discharge`
 
-## Алгоритм и ограничения
+Их можно изменить через **Settings → Devices & services → Sungrow Grid PID → Configure**.
 
-Версия **1.6.1** сохраняет простой алгоритм, уже использовавшийся в исходной Home Assistant automation. Здесь специально не добавлены Search, Import Guard, D-term и другие дополнительные стратегии.
+## PID Grid Target
+
+`PID Grid Target` создаётся как обычная Number entity интеграции со слайдером.
+
+По умолчанию:
+
+- минимум: **0 W**
+- максимум: **17 000 W**
+- шаг: **1 000 W**
+- начальное значение: **15 000 W**
+
+Минимум, максимум и шаг можно менять через **Configure** у интеграции Sungrow Grid PID.
+
+Значение восстанавливается после перезапуска Home Assistant.
+
+## Компактная карточка
+
+Интеграция автоматически добавляет карточку **Sungrow Grid PID** в каталог карточек Home Assistant.
+
+Карточка показывает:
+
+- PID ON/OFF;
+- слайдер PID Grid Target;
+- значение во время перемещения слайдера;
+- реальный экспорт;
+- задание на заряд батареи.
+
+Нажатие на **Grid Target**, **Реальный экспорт** или **Задание зарядки** открывает стандартное окно More Info / History для соответствующей сущности.
+
+## Что происходит при включении PID
+
+Перед запуском контроллера автоматически активируется:
+
+`scene.self_consumption_mode_max_battery_discharge`
+
+После этого запускается цикл регулирования.
+
+При выключении PID цикл просто останавливается. Никакая другая сцена автоматически не активируется.
+
+## Установка
+
+1. HACS → Custom repositories.
+2. Добавить `EvgenyKrinets/sungrow-grid-pid` как **Integration**.
+3. Установить **Sungrow Grid PID**.
+4. Перезапустить Home Assistant.
+5. Settings → Devices & services → Add Integration → **Sungrow Grid PID**.
+6. Dashboard → Edit → Add card → **Sungrow Grid PID**.
+
+## Важно при переходе со старой automation
+
+Если старая automation **Simple Grid Battery Controller** всё ещё включена, её нужно отключить перед запуском интеграции v2, иначе два регулятора будут одновременно записывать значение в `number.battery_max_charge_power`.
+
+Старые `input_number.pid_grid_target` и `input_number.pid_integral` интеграция не удаляет автоматически. Это сделано намеренно, чтобы не удалять пользовательские helpers без разрешения.
+
+После проверки v2 старые helpers можно удалить вручную, если они больше нигде не используются.
 
 ---
 
 <div align="center">
 
-### Sungrow Grid PID · v1.6.1
+### Sungrow Grid PID · v2.0.0
 
-Компактное управление экспортом и зарядкой батареи.
+Основано на исходной проверенной автоматизации.
 
 </div>
