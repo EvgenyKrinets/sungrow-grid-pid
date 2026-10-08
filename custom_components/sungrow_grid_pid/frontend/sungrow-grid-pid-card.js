@@ -1,4 +1,4 @@
-const CARD_VERSION="2.0.3";
+const CARD_VERSION="2.0.5";
 
 class SungrowGridPidCardEditor extends HTMLElement {
   set hass(h){ this._hass=h; this._render(); }
@@ -14,8 +14,8 @@ class SungrowGridPidCardEditor extends HTMLElement {
         .row{margin:12px 0} label{display:block;font-weight:600;margin-bottom:5px}
         select{width:100%;padding:10px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);color:var(--primary-text-color)}
       </style>
-      <div class="row"><label>PID Controller</label><select data-k="controller_entity"><option value="">Автоматически</option>${options("switch","controller_entity")}</select></div>
-      <div class="row"><label>PID Grid Target</label><select data-k="target_entity"><option value="">Автоматически</option>${options("number","target_entity")}</select></div>
+      <div class="row"><label>PID Controller</label><select data-k="controller_entity"><option value="">Автоматически</option>${options("automation","controller_entity")}</select></div>
+      <div class="row"><label>PID Grid Target</label><select data-k="target_entity"><option value="">Автоматически</option>${options("input_number","target_entity")}</select></div>
       <div class="row"><label>Реальный экспорт</label><select data-k="export_entity"><option value="">sensor.export_power</option>${options("sensor","export_entity")}</select></div>
       <div class="row"><label>Задание зарядки батареи</label><select data-k="charge_entity"><option value="">number.battery_max_charge_power</option>${options("number","charge_entity")}</select></div>
     `;
@@ -53,8 +53,8 @@ class SungrowGridPidCard extends HTMLElement {
 
   _entities(){
     return {
-      controller:this._find("switch",this._config.controller_entity||"switch.pid_grid_controller",["PID Grid Controller"],["pid","grid","controller"]),
-      target:this._find("number",this._config.target_entity||"number.pid_grid_target",["PID Grid Target"],["pid","grid","target"]),
+      controller:this._find("automation",this._config.controller_entity||"automation.simple_grid_battery_controller",["Simple Grid Battery Controller"],["simple","grid","battery","controller"]),
+      target:this._find("input_number",this._config.target_entity||"input_number.pid_grid_target",["PID Grid Target"],["pid","grid","target"]),
       exportPower:this._find("sensor",this._config.export_entity||"sensor.export_power",["Export Power"],["export","power"]),
       charge:this._find("number",this._config.charge_entity||"number.battery_max_charge_power",["Battery Max Charge Power"],["battery","charge","power"])
     };
@@ -111,7 +111,7 @@ class SungrowGridPidCard extends HTMLElement {
           <div class="stat" id="chargeStat"><div class="label">Задание зарядки батареи</div><div class="value">${this._fmt(e.charge)}</div></div>
         </div>
 
-        ${(!e.controller||!e.target)?'<div class="missing">Не найдены сущности PID Grid Controller или PID Grid Target.</div>':""}
+        ${(!e.controller||!e.target)?'<div class="missing">Не найдена автоматизация Simple Grid Battery Controller или helper PID Grid Target. Проверьте идентификаторы в настройках карточки.</div>':""}
       </ha-card>
     `;
 
@@ -120,7 +120,7 @@ class SungrowGridPidCard extends HTMLElement {
     slider.onpointerdown=()=>{this._dragging=true;};
     slider.onpointerup=()=>{this._dragging=false;};
     slider.oninput=(ev)=>{ this._dragging=true; value.textContent=Math.round(Number(ev.target.value)).toLocaleString()+" W"; };
-    slider.onchange=async(ev)=>{ this._dragging=false; if(!e.target)return; this._sending=true; try{await this._hass.callService("number","set_value",{entity_id:e.target,value:Number(ev.target.value)});}finally{this._sending=false;this._render();} };
+    slider.onchange=async(ev)=>{ this._dragging=false; if(!e.target)return; this._sending=true; try{await this._hass.callService("input_number","set_value",{entity_id:e.target,value:Number(ev.target.value)});}finally{this._sending=false;this._render();} };
 
     this.shadowRoot.getElementById("targetInfo").onclick=(ev)=>{
       if(ev.target===slider) return;
@@ -133,7 +133,7 @@ class SungrowGridPidCard extends HTMLElement {
       btn.disabled=true;
       status.textContent="Sungrow Grid PID · "+(on?"Отключение...":"Включение...");
       try {
-        await this._call("switch",on?"turn_off":"turn_on",{entity_id:e.controller});
+        await this._call("automation",on?"turn_off":"turn_on",{entity_id:e.controller,skip_condition:true});
         const actual=this._state(e.controller);
         status.textContent="Sungrow Grid PID · "+(actual==="on"?"Running":actual==="off"?"Stopped":"Статус: "+actual);
         if(actual!==(on?"off":"on"))status.textContent+=" · проверьте журнал Home Assistant";
@@ -150,5 +150,5 @@ class SungrowGridPidCard extends HTMLElement {
 if(!customElements.get("sungrow-grid-pid-card")) customElements.define("sungrow-grid-pid-card",SungrowGridPidCard);
 window.customCards=window.customCards||[];
 if(!window.customCards.some(c=>c.type==="sungrow-grid-pid-card")){
-  window.customCards.push({type:"sungrow-grid-pid-card",name:"Sungrow Grid PID",description:"Компактный PID Grid Target controller",preview:false,documentationURL:"https://github.com/EvgenyKrinets/sungrow-grid-pid"});
+  window.customCards.push({type:"sungrow-grid-pid-card",name:"Sungrow Grid PID",description:"Управление обычной PID-автоматизацией и input_number.pid_grid_target",preview:false,documentationURL:"https://github.com/EvgenyKrinets/sungrow-grid-pid"});
 }
