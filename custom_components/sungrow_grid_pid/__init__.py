@@ -75,7 +75,6 @@ class GridPidController:
         self._cancel = async_track_time_interval(
             self.hass, self._tick, timedelta(seconds=INTERVAL_SECONDS)
         )
-        await self._tick()
         self.notify()
 
     async def disable(self) -> None:
