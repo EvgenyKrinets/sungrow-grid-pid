@@ -1,4 +1,4 @@
-const CARD_VERSION="2.0.0";
+const CARD_VERSION="2.0.1";
 
 class SungrowGridPidCardEditor extends HTMLElement {
   set hass(h){ this._hass=h; this._render(); }
@@ -33,7 +33,7 @@ class SungrowGridPidCard extends HTMLElement {
 
   constructor(){ super(); this.attachShadow({mode:"open"}); this._config={}; }
   setConfig(c){ this._config=c||{}; this._render(); }
-  set hass(h){ this._hass=h; this._render(); }
+  set hass(h){ this._hass=h; if(!this._dragging && !this._sending) this._render(); }
   getCardSize(){ return 3; }
 
   _find(domain,preferred,names=[],contains=[]){
@@ -53,8 +53,8 @@ class SungrowGridPidCard extends HTMLElement {
 
   _entities(){
     return {
-      controller:this._find("switch",this._config.controller_entity,["PID Grid Controller"],["pid","grid","controller"]),
-      target:this._find("number",this._config.target_entity,["PID Grid Target"],["pid","grid","target"]),
+      controller:this._find("switch",this._config.controller_entity||"switch.pid_grid_controller",["PID Grid Controller"],["pid","grid","controller"]),
+      target:this._find("number",this._config.target_entity||"number.pid_grid_target",["PID Grid Target"],["pid","grid","target"]),
       exportPower:this._find("sensor",this._config.export_entity||"sensor.export_power",["Export Power"],["export","power"]),
       charge:this._find("number",this._config.charge_entity||"number.battery_max_charge_power",["Battery Max Charge Power"],["battery","charge","power"])
     };
@@ -115,8 +115,10 @@ class SungrowGridPidCard extends HTMLElement {
 
     const slider=this.shadowRoot.getElementById("targetSlider");
     const value=this.shadowRoot.getElementById("targetValue");
-    slider.oninput=(ev)=>{ value.textContent=Math.round(Number(ev.target.value)).toLocaleString()+" W"; };
-    slider.onchange=(ev)=>{ if(e.target) this._call("number","set_value",{entity_id:e.target,value:Number(ev.target.value)}); };
+    slider.onpointerdown=()=>{this._dragging=true;};
+    slider.onpointerup=()=>{this._dragging=false;};
+    slider.oninput=(ev)=>{ this._dragging=true; value.textContent=Math.round(Number(ev.target.value)).toLocaleString()+" W"; };
+    slider.onchange=async(ev)=>{ this._dragging=false; if(!e.target)return; this._sending=true; try{await this._hass.callService("number","set_value",{entity_id:e.target,value:Number(ev.target.value)});}finally{this._sending=false;this._render();} };
 
     this.shadowRoot.getElementById("targetInfo").onclick=(ev)=>{
       if(ev.target===slider) return;
