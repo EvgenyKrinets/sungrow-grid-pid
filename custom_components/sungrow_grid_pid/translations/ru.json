@@ -3,7 +3,12 @@
     "step": {
       "user": {
         "title": "Sungrow Grid PID",
-        "description": "Установка контроллера на основе исходной автоматизации Simple Grid Battery Controller. Интеграция автоматически создаст PID Grid Target, PID Integral, PID Output, PID Grid Error и PID Grid Controller."
+        "description": "Укажите датчики Sungrow. Значения по умолчанию уже заполнены. Интеграция установит обычную автоматизацию, два вспомогательных числа и панель PID.",
+        "data": {
+          "export_entity": "Датчик экспорта",
+          "charge_entity": "Максимальная мощность зарядки",
+          "scene_entity": "Сцена при включении PID"
+        }
       },
       "remove": {
         "title": "Удаление Sungrow Grid PID",
@@ -17,20 +22,20 @@
       "single_instance_allowed": "Sungrow Grid PID уже установлен.",
       "removed_successfully": "Запись Sungrow Grid PID удалена. Теперь можно удалить файлы интеграции через HACS.",
       "removal_cancelled": "Удаление отменено."
+    },
+    "error": {
+      "entity_not_found": "Сущность не найдена. Выберите существующую сущность."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Настройки Sungrow Grid PID",
-        "description": "Здесь можно изменить сущности Sungrow и лимиты слайдера PID Grid Target.",
+        "description": "Изменение источников экспорта, зарядки и сцены",
         "data": {
-          "export_entity": "Реальный экспорт в сеть",
-          "charge_entity": "Максимальная мощность зарядки батареи",
-          "scene_entity": "Сцена при включении PID",
-          "target_min": "Минимум Grid Target",
-          "target_max": "Максимум Grid Target",
-          "target_step": "Шаг Grid Target"
+          "export_entity": "Датчик экспорта",
+          "charge_entity": "Максимальная мощность зарядки",
+          "scene_entity": "Сцена при включении PID"
         }
       }
     }
