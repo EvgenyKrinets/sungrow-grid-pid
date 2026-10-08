@@ -141,8 +141,13 @@ async def install(hass, entry):
         entry.options.get("scene_entity", entry.data.get("scene_entity", "scene.self_consumption_mode_max_battery_discharge")),
     )
     result = await hass.async_add_executor_job(write_automation, hass.config.path("automations.yaml"), automation)
-    if result in ("created", "existing_manual"):
+    if result in ("created", "existing_manual", "existing"):
         await hass.services.async_call("automation", "reload", {}, blocking=True)
+    candidates = [(entity_id, state.attributes.get("friendly_name")) for entity_id, state in hass.states.async_all("automation") if "grid" in entity_id.lower() or "pid" in entity_id.lower() or "battery" in entity_id.lower()]
+    if not candidates:
+        _LOGGER.error("Sungrow Grid PID: automation not found after reload. Installer status=%s. Confirm configuration.yaml includes automation: !include automations.yaml and check automation errors in Home Assistant logs.", result)
+    else:
+        _LOGGER.info("Available battery/PID automations: %s", candidates)
     try:
         await install_dashboard(hass)
     except Exception:
