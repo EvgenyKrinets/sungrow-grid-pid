@@ -1,20 +1,135 @@
-const CARD_VERSION="1.6.1";
-const FIELDS=[["controller_entity","PID Controller"],["target_entity","Целевой экспорт"],["export_entity","Реальный экспорт"],["charge_entity","Команда заряда батареи"]];
-class SungrowGridPidCardEditor extends HTMLElement{
- set hass(h){this._hass=h;this._render()} setConfig(c){this._config=c||{};this._render()}
- _render(){if(!this._hass)return;const cfg=this._config||{},opts=(k)=>Object.keys(this._hass.states).filter(id=>/^(sensor|number|switch|input_number)\./.test(id)).map(id=>`<option value="${id}" ${cfg[k]===id?"selected":""}>${id} — ${this._hass.states[id].attributes.friendly_name||""}</option>`).join("");this.innerHTML=`<style>.e{padding:8px}.r{margin:12px 0}label{display:block;font-weight:700;margin-bottom:5px}select,input{width:100%;padding:10px;border:1px solid var(--divider-color);border-radius:9px;background:var(--card-background-color);color:var(--primary-text-color);box-sizing:border-box}.g{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}</style><div class=e>${FIELDS.map(([k,l])=>`<div class=r><label>${l}</label><select data-k="${k}"><option value="">Автоматически</option>${opts(k)}</select></div>`).join("")}<div class=r><label>Параметры слайдера</label><div class=g><input data-n="target_min" type=number placeholder="Min" value="${cfg.target_min??0}"><input data-n="target_max" type=number placeholder="Max" value="${cfg.target_max??17000}"><input data-n="target_step" type=number placeholder="Step" value="${cfg.target_step??1000}"></div></div></div>`;this.querySelectorAll("select").forEach(s=>s.onchange=()=>{this._config={...cfg,[s.dataset.k]:s.value||undefined};this._fire()});this.querySelectorAll("[data-n]").forEach(i=>i.onchange=()=>{this._config={...this._config,[i.dataset.n]:Number(i.value)};this._fire()})}
- _fire(){this.dispatchEvent(new CustomEvent("config-changed",{detail:{config:this._config},bubbles:true,composed:true}))}
+const CARD_VERSION="2.0.0";
+
+class SungrowGridPidCardEditor extends HTMLElement {
+  set hass(h){ this._hass=h; this._render(); }
+  setConfig(c){ this._config=c||{}; this._render(); }
+  _render(){
+    if(!this._hass) return;
+    const cfg=this._config||{};
+    const options=(domain,key)=>Object.keys(this._hass.states)
+      .filter(id=>id.startsWith(domain+"."))
+      .map(id=>`<option value="${id}" ${cfg[key]===id?"selected":""}>${id} — ${this._hass.states[id].attributes.friendly_name||""}</option>`).join("");
+    this.innerHTML=`
+      <style>
+        .row{margin:12px 0} label{display:block;font-weight:600;margin-bottom:5px}
+        select{width:100%;padding:10px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);color:var(--primary-text-color)}
+      </style>
+      <div class="row"><label>PID Controller</label><select data-k="controller_entity"><option value="">Автоматически</option>${options("switch","controller_entity")}</select></div>
+      <div class="row"><label>PID Grid Target</label><select data-k="target_entity"><option value="">Автоматически</option>${options("number","target_entity")}</select></div>
+      <div class="row"><label>Реальный экспорт</label><select data-k="export_entity"><option value="">sensor.export_power</option>${options("sensor","export_entity")}</select></div>
+      <div class="row"><label>Задание зарядки батареи</label><select data-k="charge_entity"><option value="">number.battery_max_charge_power</option>${options("number","charge_entity")}</select></div>
+    `;
+    this.querySelectorAll("select").forEach(el=>el.onchange=()=>{
+      this._config={...cfg,[el.dataset.k]:el.value||undefined};
+      this.dispatchEvent(new CustomEvent("config-changed",{detail:{config:this._config},bubbles:true,composed:true}));
+    });
+  }
 }
-if(!customElements.get("sungrow-grid-pid-card-editor"))customElements.define("sungrow-grid-pid-card-editor",SungrowGridPidCardEditor);
-class SungrowGridPidCard extends HTMLElement{
- static getStubConfig(){return{target_min:0,target_max:17000,target_step:1000}} static getConfigElement(){return document.createElement("sungrow-grid-pid-card-editor")}
- constructor(){super();this.attachShadow({mode:"open"});this._config={}} setConfig(c){this._config=c||{};this._render()} set hass(h){this._hass=h;this._render()} getCardSize(){return 4}
- _find(d,p,n=[],c=[]){if(!this._hass)return null;if(p&&this._hass.states[p])return p;let a=Object.entries(this._hass.states).filter(([id])=>id.startsWith(d+"."));for(const[id,s]of a){let f=String(s.attributes.friendly_name||"").toLowerCase();if(n.some(x=>f===x.toLowerCase()))return id}for(const[id,s]of a){let h=(id+" "+(s.attributes.friendly_name||"")).toLowerCase();if(c.length&&c.every(x=>h.includes(x)))return id}return null}
- _e(){return{controller:this._find("switch",this._config.controller_entity,["PID Grid Controller"],["pid","grid","controller"]),target:this._find("number",this._config.target_entity,["PID Grid Target"],["pid","grid","target"])||this._find("input_number",this._config.target_entity,["PID Grid Target"],["pid","grid","target"]),exportPower:this._find("sensor",this._config.export_entity||"sensor.export_power",["Export Power"],["export","power"]),charge:this._find("number",this._config.charge_entity||"number.battery_max_charge_power",["Battery Max Charge Power"],["battery","charge","power"])||this._find("sensor",this._config.charge_entity,["Battery Charge Power"],["battery","charge","power"])}}
- _s(id,f="—"){return id&&this._hass?.states[id]?this._hass.states[id].state:f}_n(id){let v=Number(this._s(id,NaN));return Number.isFinite(v)?v:null}_fmt(id){let v=this._n(id);return v===null?"—":Math.round(v).toLocaleString()+" W"}_more(id){if(id)this.dispatchEvent(new CustomEvent("hass-more-info",{detail:{entityId:id},bubbles:true,composed:true}))}_call(d,s,x){this._hass?.callService(d,s,x)}
- _render(){if(!this._hass)return;let e=this._e(),on=this._s(e.controller)==="on",t=this._n(e.target)??0,min=Number(this._config.target_min??0),max=Number(this._config.target_max??17000),step=Number(this._config.target_step??1000);if(max<=min)max=min+1000;if(step<=0)step=1000;
- this.shadowRoot.innerHTML=`<style>:host{display:block;container-type:inline-size}*{box-sizing:border-box}ha-card{background:var(--ha-card-background,var(--card-background-color,#fff));color:var(--primary-text-color);border-radius:22px;padding:18px;font-family:Arial,sans-serif}.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.brand{font-size:20px;font-weight:800}.sub{font-size:12px;color:var(--secondary-text-color);margin-top:3px}.sw{width:52px;height:30px;border:0;border-radius:18px;background:#aeb8c2;padding:3px;cursor:pointer}.sw.on{background:#1596e8}.kn{display:block;width:24px;height:24px;background:#fff;border-radius:50%;transition:.15s}.sw.on .kn{transform:translateX(22px)}.target{border:1px solid var(--divider-color);border-radius:16px;padding:15px}.tr{display:flex;justify-content:space-between;align-items:center;gap:10px}.tr span{font-size:15px}.tr b{font-size:25px}input[type=range]{width:100%;margin:15px 0 4px;accent-color:#2784bd}.lims{display:flex;justify-content:space-between;color:var(--secondary-text-color);font-size:11px}.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:11px}.stat{border:1px solid var(--divider-color);border-radius:15px;padding:13px;cursor:pointer;min-width:0}.lab{font-size:12px;color:var(--secondary-text-color)}.val{font-size:22px;font-weight:800;margin-top:6px}.foot{display:flex;justify-content:space-between;margin-top:10px;color:var(--secondary-text-color);font-size:10px}@container(max-width:390px){ha-card{padding:13px}.stats{gap:7px}.stat{padding:10px}.val{font-size:19px}.tr b{font-size:22px}}</style><ha-card><div class=head><div><div class=brand>⚡ Sungrow Grid PID</div><div class=sub>PID Controller · ${on?"Running":"Stopped"}</div></div><button id=toggle class="sw ${on?"on":""}"><span class=kn></span></button></div><div class=target><div class=tr><span id=targetInfo style="cursor:pointer">Целевой экспорт</span><b id=targetValue style="cursor:pointer">${Math.round(t).toLocaleString()} W</b></div><input id=target type=range min="${min}" max="${max}" step="${step}" value="${Math.min(max,Math.max(min,t))}"><div class=lims><span>${min.toLocaleString()} W</span><span>${max.toLocaleString()} W</span></div></div><div class=stats><div class=stat id=exp><div class=lab>Реальный экспорт</div><div class=val>${this._fmt(e.exportPower)}</div></div><div class=stat id=chg><div class=lab>Задание на заряд батареи</div><div class=val>${this._fmt(e.charge)}</div></div></div><div class=foot><span>Нажмите показатель для графика</span><span>v${CARD_VERSION}</span></div></ha-card>`;
- this.shadowRoot.getElementById("toggle").onclick=()=>e.controller&&this._call("switch",on?"turn_off":"turn_on",{entity_id:e.controller});const slider=this.shadowRoot.getElementById("target");const targetValue=this.shadowRoot.getElementById("targetValue");slider.oninput=ev=>{targetValue.textContent=Math.round(Number(ev.target.value)).toLocaleString()+" W"};slider.onchange=ev=>{if(!e.target)return;let domain=e.target.split(".")[0];this._call(domain,"set_value",{entity_id:e.target,value:Number(ev.target.value)})};this.shadowRoot.getElementById("targetInfo").onclick=()=>this._more(e.target);targetValue.onclick=()=>this._more(e.target);this.shadowRoot.getElementById("exp").onclick=()=>this._more(e.exportPower);this.shadowRoot.getElementById("chg").onclick=()=>this._more(e.charge)}
+if(!customElements.get("sungrow-grid-pid-card-editor")) customElements.define("sungrow-grid-pid-card-editor",SungrowGridPidCardEditor);
+
+class SungrowGridPidCard extends HTMLElement {
+  static getStubConfig(){ return {}; }
+  static getConfigElement(){ return document.createElement("sungrow-grid-pid-card-editor"); }
+
+  constructor(){ super(); this.attachShadow({mode:"open"}); this._config={}; }
+  setConfig(c){ this._config=c||{}; this._render(); }
+  set hass(h){ this._hass=h; this._render(); }
+  getCardSize(){ return 3; }
+
+  _find(domain,preferred,names=[],contains=[]){
+    if(!this._hass) return null;
+    if(preferred && this._hass.states[preferred]) return preferred;
+    const states=Object.entries(this._hass.states).filter(([id])=>id.startsWith(domain+"."));
+    for(const [id,s] of states){
+      const f=String(s.attributes.friendly_name||"").toLowerCase();
+      if(names.some(n=>f===n.toLowerCase())) return id;
+    }
+    for(const [id,s] of states){
+      const hay=(id+" "+String(s.attributes.friendly_name||"")).toLowerCase();
+      if(contains.length && contains.every(k=>hay.includes(k))) return id;
+    }
+    return null;
+  }
+
+  _entities(){
+    return {
+      controller:this._find("switch",this._config.controller_entity,["PID Grid Controller"],["pid","grid","controller"]),
+      target:this._find("number",this._config.target_entity,["PID Grid Target"],["pid","grid","target"]),
+      exportPower:this._find("sensor",this._config.export_entity||"sensor.export_power",["Export Power"],["export","power"]),
+      charge:this._find("number",this._config.charge_entity||"number.battery_max_charge_power",["Battery Max Charge Power"],["battery","charge","power"])
+    };
+  }
+
+  _state(id,f="—"){ return id&&this._hass?.states[id]?this._hass.states[id].state:f; }
+  _num(id){ const v=Number(this._state(id,NaN)); return Number.isFinite(v)?v:null; }
+  _fmt(id){ const v=this._num(id); return v===null?"—":Math.round(v).toLocaleString()+" W"; }
+  _more(id){ if(id) this.dispatchEvent(new CustomEvent("hass-more-info",{detail:{entityId:id},bubbles:true,composed:true})); }
+  _call(domain,service,data){ this._hass?.callService(domain,service,data); }
+
+  _render(){
+    if(!this.shadowRoot || !this._hass) return;
+    const e=this._entities();
+    const on=this._state(e.controller)==="on";
+    const targetState=e.target?this._hass.states[e.target]:null;
+    const target=this._num(e.target)??15000;
+    const min=Number(targetState?.attributes.min??0);
+    const max=Number(targetState?.attributes.max??17000);
+    const step=Number(targetState?.attributes.step??1000);
+
+    this.shadowRoot.innerHTML=`
+      <style>
+        :host{display:block}*{box-sizing:border-box}
+        ha-card{padding:14px 16px;border-radius:16px;background:var(--ha-card-background,var(--card-background-color,#fff));color:var(--primary-text-color)}
+        .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+        .title{font-size:18px;font-weight:700}.sub{font-size:12px;color:var(--secondary-text-color);margin-top:2px}
+        .toggle{width:48px;height:28px;border:0;border-radius:16px;background:#b9c2cc;padding:3px;cursor:pointer}
+        .toggle.on{background:#4b86b4}.knob{display:block;width:22px;height:22px;border-radius:50%;background:#fff;transition:.15s}.toggle.on .knob{transform:translateX(20px)}
+        .target{cursor:pointer;padding:4px 0 2px}.targetHead{display:flex;justify-content:space-between;align-items:end;gap:10px}
+        .targetName{font-size:14px}.targetValue{font-size:18px;font-weight:700}
+        input[type=range]{width:100%;margin:10px 0 2px;accent-color:#4b86b4}
+        .limits{display:flex;justify-content:space-between;font-size:10px;color:var(--secondary-text-color)}
+        .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+        .stat{border-top:1px solid var(--divider-color);padding-top:9px;cursor:pointer}.label{font-size:11px;color:var(--secondary-text-color)}.value{font-size:17px;font-weight:700;margin-top:3px}
+        .missing{margin-top:10px;padding:8px;border-radius:8px;background:var(--warning-color,#f0ad4e22);font-size:11px}
+      </style>
+      <ha-card>
+        <div class="top">
+          <div><div class="title">PID Grid Target</div><div class="sub">Sungrow Grid PID · ${on?"Running":"Stopped"}</div></div>
+          <button id="toggle" class="toggle ${on?"on":""}"><span class="knob"></span></button>
+        </div>
+
+        <div class="target" id="targetInfo">
+          <div class="targetHead"><span class="targetName">Целевой экспорт</span><span class="targetValue" id="targetValue">${Math.round(target).toLocaleString()} W</span></div>
+          <input id="targetSlider" type="range" min="${min}" max="${max}" step="${step}" value="${Math.min(max,Math.max(min,target))}">
+          <div class="limits"><span>${min.toLocaleString()} W</span><span>${max.toLocaleString()} W</span></div>
+        </div>
+
+        <div class="stats">
+          <div class="stat" id="exportStat"><div class="label">Реальный экспорт</div><div class="value">${this._fmt(e.exportPower)}</div></div>
+          <div class="stat" id="chargeStat"><div class="label">Задание зарядки батареи</div><div class="value">${this._fmt(e.charge)}</div></div>
+        </div>
+
+        ${(!e.controller||!e.target)?'<div class="missing">Не найдены сущности PID Grid Controller или PID Grid Target.</div>':""}
+      </ha-card>
+    `;
+
+    const slider=this.shadowRoot.getElementById("targetSlider");
+    const value=this.shadowRoot.getElementById("targetValue");
+    slider.oninput=(ev)=>{ value.textContent=Math.round(Number(ev.target.value)).toLocaleString()+" W"; };
+    slider.onchange=(ev)=>{ if(e.target) this._call("number","set_value",{entity_id:e.target,value:Number(ev.target.value)}); };
+
+    this.shadowRoot.getElementById("targetInfo").onclick=(ev)=>{
+      if(ev.target===slider) return;
+      this._more(e.target);
+    };
+    this.shadowRoot.getElementById("toggle").onclick=()=>{ if(e.controller) this._call("switch",on?"turn_off":"turn_on",{entity_id:e.controller}); };
+    this.shadowRoot.getElementById("exportStat").onclick=()=>this._more(e.exportPower);
+    this.shadowRoot.getElementById("chargeStat").onclick=()=>this._more(e.charge);
+  }
 }
-if(!customElements.get("sungrow-grid-pid-card"))customElements.define("sungrow-grid-pid-card",SungrowGridPidCard);
-window.customCards=window.customCards||[];if(!window.customCards.some(c=>c.type==="sungrow-grid-pid-card"))window.customCards.push({type:"sungrow-grid-pid-card",name:"Sungrow Grid PID",description:"Компактное управление PID экспортом Sungrow",preview:false,documentationURL:"https://github.com/EvgenyKrinets/sungrow-grid-pid"});
+
+if(!customElements.get("sungrow-grid-pid-card")) customElements.define("sungrow-grid-pid-card",SungrowGridPidCard);
+window.customCards=window.customCards||[];
+if(!window.customCards.some(c=>c.type==="sungrow-grid-pid-card")){
+  window.customCards.push({type:"sungrow-grid-pid-card",name:"Sungrow Grid PID",description:"Компактный PID Grid Target controller",preview:false,documentationURL:"https://github.com/EvgenyKrinets/sungrow-grid-pid"});
+}
