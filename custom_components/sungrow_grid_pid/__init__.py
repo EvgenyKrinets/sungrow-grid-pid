@@ -18,6 +18,27 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     return True
 
 
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Migrate earlier config entries without deleting user data."""
+    from .config_flow import DEFAULTS, SungrowGridPidConfigFlow
+
+    target_version = SungrowGridPidConfigFlow.VERSION
+    if entry.version > target_version:
+        _LOGGER.error("Unsupported newer Sungrow Grid PID config entry version: %s", entry.version)
+        return False
+    if entry.version == target_version:
+        return True
+
+    data = {**DEFAULTS, **entry.data}
+    # Earlier releases stored the same entity selections in options.
+    # Preserve user configuration, including options, across upgrades.
+    hass.config_entries.async_update_entry(
+        entry, data=data, version=target_version
+    )
+    _LOGGER.info("Migrated Sungrow Grid PID config entry from old version to %s", target_version)
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         if not hass.data.get(f"{DOMAIN}_frontend_registered"):
