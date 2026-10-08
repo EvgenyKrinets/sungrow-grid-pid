@@ -1,13 +1,20 @@
 {
   "domain": "sungrow_grid_pid",
   "name": "Sungrow Grid PID",
-  "version": "2.0.5",
+  "version": "3.0.0",
   "documentation": "https://github.com/EvgenyKrinets/sungrow-grid-pid",
   "issue_tracker": "https://github.com/EvgenyKrinets/sungrow-grid-pid/issues",
-  "codeowners": ["@EvgenyKrinets"],
+  "codeowners": [
+    "@EvgenyKrinets"
+  ],
   "config_flow": true,
   "integration_type": "helper",
   "iot_class": "local_push",
-  "dependencies": ["frontend", "http", "lovelace"],
-  "after_dependencies": ["sungrow"]
+  "dependencies": [
+    "frontend",
+    "http",
+    "lovelace",
+    "input_number",
+    "automation"
+  ]
 }
