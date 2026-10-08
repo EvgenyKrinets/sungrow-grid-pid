@@ -3,7 +3,12 @@
     "step": {
       "user": {
         "title": "Sungrow Grid PID",
-        "description": "Installs the controller based on the original Simple Grid Battery Controller automation and automatically creates all PID entities."
+        "description": "Confirm your Sungrow entity IDs. Defaults are prefilled. Installs a normal automation, two input_number helpers, and a PID dashboard.",
+        "data": {
+          "export_entity": "Grid export sensor",
+          "charge_entity": "Battery max charge power",
+          "scene_entity": "Scene on PID enable"
+        }
       },
       "remove": {
         "title": "Remove Sungrow Grid PID",
@@ -17,20 +22,20 @@
       "single_instance_allowed": "Sungrow Grid PID is already installed.",
       "removed_successfully": "Sungrow Grid PID entry removed. You can uninstall its files through HACS.",
       "removal_cancelled": "Removal cancelled."
+    },
+    "error": {
+      "entity_not_found": "Entity not found. Enter an existing entity ID."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Sungrow Grid PID settings",
-        "description": "Change Sungrow entities and PID Grid Target slider limits.",
+        "description": "Change export, charge, and scene entities",
         "data": {
-          "export_entity": "Real grid export entity",
-          "charge_entity": "Battery max charge power entity",
-          "scene_entity": "Scene activated when PID starts",
-          "target_min": "Grid Target minimum",
-          "target_max": "Grid Target maximum",
-          "target_step": "Grid Target step"
+          "export_entity": "Grid export sensor",
+          "charge_entity": "Battery max charge power",
+          "scene_entity": "Scene on PID enable"
         }
       }
     }
