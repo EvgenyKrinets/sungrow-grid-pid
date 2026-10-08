@@ -1,4 +1,4 @@
-const CARD_VERSION="3.0.5";
+const CARD_VERSION="3.0.6";
 
 class SungrowGridPidCardEditor extends HTMLElement {
   set hass(h){ this._hass=h; if(!this._rendered) this._render(); }
@@ -6,23 +6,24 @@ class SungrowGridPidCardEditor extends HTMLElement {
     this._config=c||{};
     if(!this._rendered) this._render();
     else this.querySelectorAll("select[data-k]").forEach(el=>{
-      if(el!==document.activeElement && el.value!==(this._config[el.dataset.k]||""))
-        el.value=this._config[el.dataset.k]||"";
+      if(el!==document.activeElement && this._config[el.dataset.k] && el.value!==this._config[el.dataset.k])
+        el.value=this._config[el.dataset.k];
     });
   }
   _render(){
     if(!this._hass) return;
     const cfg=this._config||{};
+    const defaults={controller_entity:"automation.simple_grid_battery_controller",target_entity:"input_number.pid_grid_target",export_entity:"sensor.export_power",charge_entity:"number.battery_max_charge_power"};
     const options=(domain,key)=>Object.keys(this._hass.states)
       .filter(id=>id.startsWith(domain+"."))
-      .map(id=>`<option value="${id}" ${cfg[key]===id?"selected":""}>${id} — ${this._hass.states[id].attributes.friendly_name||""}</option>`).join("");
+      .map(id=>`<option value="${id}" ${(cfg[key]||defaults[key])===id?"selected":""}>${id} — ${this._hass.states[id].attributes.friendly_name||""}</option>`).join("");
     this.innerHTML=`
       <style>
         .row{margin:12px 0} label{display:block;font-weight:600;margin-bottom:5px}
         select{width:100%;padding:10px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);color:var(--primary-text-color)}
       </style>
-      <div class="row"><label>PID Controller</label><select data-k="controller_entity"><option value="">Автоматически</option>${options("automation","controller_entity")}</select></div>
-      <div class="row"><label>PID Grid Target</label><select data-k="target_entity"><option value="">Автоматически</option>${options("input_number","target_entity")}</select></div>
+      <div class="row"><label>PID Controller</label><select data-k="controller_entity"><option value="">По умолчанию: automation.simple_grid_battery_controller</option>${options("automation","controller_entity")}</select></div>
+      <div class="row"><label>PID Grid Target</label><select data-k="target_entity"><option value="">По умолчанию: input_number.pid_grid_target</option>${options("input_number","target_entity")}</select></div>
       <div class="row"><label>Реальный экспорт</label><select data-k="export_entity"><option value="">sensor.export_power</option>${options("sensor","export_entity")}</select></div>
       <div class="row"><label>Задание зарядки батареи</label><select data-k="charge_entity"><option value="">number.battery_max_charge_power</option>${options("number","charge_entity")}</select></div>
     `;
@@ -107,7 +108,7 @@ class SungrowGridPidCard extends HTMLElement {
       <ha-card>
         <div class="top">
           <div><div class="title">PID Grid Target</div><div class="sub" id="pidStatus">Sungrow Grid PID v${CARD_VERSION} · ${on?"Running":"Stopped"}${controllerFound?"":" · automation not found"}</div></div>
-          <button id="toggle" class="toggle ${on?"on":""}" ${controllerFound?"":"disabled"} title="${e.controller||"Switch not found"}"><span class="knob"></span></button>
+          <button id="toggle" class="toggle ${on?"on":""}" ${controllerFound?"":"disabled"} title="${e.controller||"Automation not found"}"><span class="knob"></span></button>
         </div>
 
         <div class="target" id="targetInfo">
@@ -130,14 +131,14 @@ class SungrowGridPidCard extends HTMLElement {
     slider.onpointerdown=()=>{this._dragging=true;};
     slider.onpointerup=()=>{this._dragging=false;};
     slider.oninput=(ev)=>{ this._dragging=true; value.textContent=Math.round(Number(ev.target.value)).toLocaleString()+" W"; };
-    slider.onchange=async(ev)=>{ this._dragging=false; if(!e.target)return; this._sending=true; try{await this._hass.callService("input_number","set_value",{entity_id:e.target,value:Number(ev.target.value)});}finally{this._sending=false;this._render();} };
+    slider.onchange=async(ev)=>{ this._dragging=false; if(!targetState)return; this._sending=true; try{await this._hass.callService("input_number","set_value",{entity_id:e.target,value:Number(ev.target.value)});}finally{this._sending=false;this._render();} };
 
     this.shadowRoot.getElementById("targetInfo").onclick=(ev)=>{
       if(ev.target===slider) return;
       this._more(e.target);
     };
     this.shadowRoot.getElementById("toggle").onclick=async()=>{
-      if(!e.controller)return;
+      if(!controllerFound)return;
       const btn=this.shadowRoot.getElementById("toggle");
       const status=this.shadowRoot.getElementById("pidStatus");
       btn.disabled=true;
