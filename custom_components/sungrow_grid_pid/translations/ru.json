@@ -4,10 +4,19 @@
       "user": {
         "title": "Sungrow Grid PID",
         "description": "Установка контроллера на основе исходной автоматизации Simple Grid Battery Controller. Интеграция автоматически создаст PID Grid Target, PID Integral, PID Output, PID Grid Error и PID Grid Controller."
+      },
+      "remove": {
+        "title": "Удаление Sungrow Grid PID",
+        "description": "Найдена существующая запись Sungrow Grid PID, даже если интеграция не показана в списке. Подтвердите удаление записи конфигурации и принадлежащих ей сущностей. Sungrow iSolarCloud и другие интеграции останутся без изменений.",
+        "data": {
+          "confirm": "Да, удалить Sungrow Grid PID"
+        }
       }
     },
     "abort": {
-      "single_instance_allowed": "Sungrow Grid PID уже установлен."
+      "single_instance_allowed": "Sungrow Grid PID уже установлен.",
+      "removed_successfully": "Запись Sungrow Grid PID удалена. Теперь можно удалить файлы интеграции через HACS.",
+      "removal_cancelled": "Удаление отменено."
     }
   },
   "options": {
