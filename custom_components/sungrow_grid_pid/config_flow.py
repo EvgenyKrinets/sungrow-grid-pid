@@ -33,9 +33,6 @@ class SungrowGridPidConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class SungrowGridPidOptionsFlow(config_entries.OptionsFlow):
-    def __init__(self, config_entry):
-        # HA supplies self.config_entry to OptionsFlow.
-
     async def async_step_init(self, user_input=None):
         if user_input is not None:
             if (user_input["target_max"] <= user_input["target_min"] or user_input["target_step"] <= 0):
