@@ -1,4 +1,4 @@
-const CARD_VERSION="3.0.3";
+const CARD_VERSION="3.0.4";
 
 class SungrowGridPidCardEditor extends HTMLElement {
   set hass(h){ this._hass=h; if(!this._rendered) this._render(); }
@@ -33,7 +33,8 @@ class SungrowGridPidCardEditor extends HTMLElement {
     });
   }
 }
-if(!customElements.get("sungrow-grid-pid-card-editor")) customElements.define("sungrow-grid-pid-card-editor",SungrowGridPidCardEditor);
+if(customElements.get("sungrow-grid-pid-card-editor")) customElements.get("sungrow-grid-pid-card-editor").prototype.setConfig=SungrowGridPidCardEditor.prototype.setConfig;
+else customElements.define("sungrow-grid-pid-card-editor",SungrowGridPidCardEditor);
 
 class SungrowGridPidCard extends HTMLElement {
   static getStubConfig(){ return {}; }
@@ -105,7 +106,7 @@ class SungrowGridPidCard extends HTMLElement {
       </style>
       <ha-card>
         <div class="top">
-          <div><div class="title">PID Grid Target</div><div class="sub" id="pidStatus">Sungrow Grid PID · ${on?"Running":"Stopped"}${controllerFound?"":" · automation not found"}</div></div>
+          <div><div class="title">PID Grid Target</div><div class="sub" id="pidStatus">Sungrow Grid PID v${CARD_VERSION} · ${on?"Running":"Stopped"}${controllerFound?"":" · automation not found"}</div></div>
           <button id="toggle" class="toggle ${on?"on":""}" ${controllerFound?"":"disabled"} title="${e.controller||"Switch not found"}"><span class="knob"></span></button>
         </div>
 
@@ -156,7 +157,12 @@ class SungrowGridPidCard extends HTMLElement {
   }
 }
 
-if(!customElements.get("sungrow-grid-pid-card")) customElements.define("sungrow-grid-pid-card",SungrowGridPidCard);
+if(customElements.get("sungrow-grid-pid-card")) {
+  const old=customElements.get("sungrow-grid-pid-card").prototype;
+  for(const name of Object.getOwnPropertyNames(SungrowGridPidCard.prototype)) {
+    if(name!=="constructor") Object.defineProperty(old,name,Object.getOwnPropertyDescriptor(SungrowGridPidCard.prototype,name));
+  }
+} else customElements.define("sungrow-grid-pid-card",SungrowGridPidCard);
 window.customCards=window.customCards||[];
 if(!window.customCards.some(c=>c.type==="sungrow-grid-pid-card")){
   window.customCards.push({type:"sungrow-grid-pid-card",name:"Sungrow Grid PID",description:"Управление обычной PID-автоматизацией и input_number.pid_grid_target",preview:false,documentationURL:"https://github.com/EvgenyKrinets/sungrow-grid-pid"});
