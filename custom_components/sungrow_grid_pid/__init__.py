@@ -9,8 +9,14 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_interval
 
 from .const import (
-    CHARGE_CANDIDATES, DOMAIN, EXPORT_CANDIDATES, FORCED_DISCHARGE_OPTIONS,
-    GAIN, INTERVAL_SECONDS, MODE_CANDIDATES,
+    DEFAULT_CHARGE_ENTITY,
+    DEFAULT_EXPORT_ENTITY,
+    DEFAULT_MAX_CHARGE,
+    DEFAULT_SCENE_ENTITY,
+    DEFAULT_TARGET,
+    DOMAIN,
+    GAIN,
+    INTERVAL_SECONDS,
 )
 from .frontend import async_register_frontend
 
@@ -18,37 +24,33 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["number", "sensor", "switch"]
 
 
-def _find_entity(hass: HomeAssistant, candidates: tuple[str, ...], keywords: tuple[str, ...]) -> str | None:
-    for entity_id in candidates:
-        if hass.states.get(entity_id) is not None:
-            return entity_id
-    for state in hass.states.async_all():
-        eid = state.entity_id.lower()
-        if all(k in eid for k in keywords):
-            return state.entity_id
-    return None
-
-
-def discover_entities(hass: HomeAssistant) -> dict[str, str | None]:
-    return {
-        "export": _find_entity(hass, EXPORT_CANDIDATES, ("export", "power")),
-        "charge": _find_entity(hass, CHARGE_CANDIDATES, ("charge", "power")),
-        "mode": _find_entity(hass, MODE_CANDIDATES, ("battery", "mode"))
-            or _find_entity(hass, MODE_CANDIDATES, ("forced", "charge", "discharge")),
-    }
-
-
 class GridPidController:
-    def __init__(self, hass: HomeAssistant) -> None:
+    """Exact Home Assistant automation logic, packaged as an integration."""
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.hass = hass
-        self.entities = discover_entities(hass)
+        self.entry = entry
         self.enabled = False
-        self.target = 15000.0
+        self.target = DEFAULT_TARGET
+        self.integral = 0.0
         self.output = 0.0
         self.error = 0.0
-        self.previous_mode: str | None = None
+        self.grid = 0.0
         self._cancel = None
+        self._tick_running = False
         self.listeners: list[Any] = []
+
+    @property
+    def export_entity(self) -> str:
+        return self.entry.options.get("export_entity", DEFAULT_EXPORT_ENTITY)
+
+    @property
+    def charge_entity(self) -> str:
+        return self.entry.options.get("charge_entity", DEFAULT_CHARGE_ENTITY)
+
+    @property
+    def scene_entity(self) -> str:
+        return self.entry.options.get("scene_entity", DEFAULT_SCENE_ENTITY)
 
     def add_listener(self, callback):
         self.listeners.append(callback)
@@ -60,36 +62,20 @@ class GridPidController:
     async def enable(self) -> None:
         if self.enabled:
             return
-        self.entities = discover_entities(self.hass)
-        # Put Sungrow into the known self-consumption / max battery discharge scene first.
-        scene_id = "scene.self_consumption_mode_max_battery_discharge"
-        if self.hass.states.get(scene_id) is not None:
+
+        scene_id = self.scene_entity
+        if scene_id and self.hass.states.get(scene_id) is not None:
             await self.hass.services.async_call(
                 "scene", "turn_on", {"entity_id": scene_id}, blocking=True
             )
-        mode_id = self.entities["mode"]
-        if mode_id:
-            state = self.hass.states.get(mode_id)
-            if state:
-                self.previous_mode = state.state
-                options = state.attributes.get("options", [])
-                option = next((x for x in FORCED_DISCHARGE_OPTIONS if x in options), None)
-                if option:
-                    await self.hass.services.async_call(
-                        "select", "select_option",
-                        {"entity_id": mode_id, "option": option}, blocking=True
-                    )
-        charge_id = self.entities["charge"]
-        if charge_id:
-            state = self.hass.states.get(charge_id)
-            try:
-                self.output = float(state.state) if state else 0.0
-            except (TypeError, ValueError):
-                self.output = 0.0
+
+        # Same starting point as input_number.pid_integral in the original automation.
+        self.output = float(self.integral)
         self.enabled = True
         self._cancel = async_track_time_interval(
             self.hass, self._tick, timedelta(seconds=INTERVAL_SECONDS)
         )
+        await self._tick()
         self.notify()
 
     async def disable(self) -> None:
@@ -97,40 +83,49 @@ class GridPidController:
             self._cancel()
             self._cancel = None
         self.enabled = False
-        mode_id = self.entities.get("mode")
-        if mode_id and self.previous_mode:
-            state = self.hass.states.get(mode_id)
-            options = state.attributes.get("options", []) if state else []
-            if self.previous_mode in options:
-                await self.hass.services.async_call(
-                    "select", "select_option",
-                    {"entity_id": mode_id, "option": self.previous_mode}, blocking=True
-                )
-        self.previous_mode = None
         self.notify()
 
     async def _tick(self, _now=None) -> None:
-        if not self.enabled:
+        # Faithful equivalent of automation mode: single / max_exceeded: silent.
+        if not self.enabled or self._tick_running:
             return
-        export_id = self.entities.get("export")
-        charge_id = self.entities.get("charge")
-        if not export_id or not charge_id:
-            return
+
+        self._tick_running = True
         try:
-            grid = float(self.hass.states[export_id].state)
-        except (KeyError, TypeError, ValueError):
-            return
-        self.error = grid - self.target
-        self.output = max(0.0, min(25000.0, self.output + self.error * GAIN))
-        await self.hass.services.async_call(
-            "number", "set_value",
-            {"entity_id": charge_id, "value": round(self.output)}, blocking=False
-        )
-        self.notify()
+            export_state = self.hass.states.get(self.export_entity)
+            charge_state = self.hass.states.get(self.charge_entity)
+            if export_state is None or charge_state is None:
+                return
+
+            try:
+                grid = float(export_state.state)
+                target = float(self.target)
+                integral = float(self.integral)
+            except (TypeError, ValueError):
+                return
+
+            self.grid = grid
+            self.error = grid - target
+            output_new = integral + (self.error * GAIN)
+            output_new = round(max(0.0, min(DEFAULT_MAX_CHARGE, output_new)))
+
+            # Exact order from the original automation:
+            # 1) write battery max charge power
+            # 2) store the same value as the new integral/output
+            await self.hass.services.async_call(
+                "number",
+                "set_value",
+                {"entity_id": self.charge_entity, "value": output_new},
+                blocking=True,
+            )
+            self.output = float(output_new)
+            self.integral = float(output_new)
+            self.notify()
+        finally:
+            self._tick_running = False
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Register the dashboard card as soon as Home Assistant loads the integration."""
     if not hass.data.get(f"{DOMAIN}_frontend_registered"):
         await async_register_frontend(hass)
         hass.data[f"{DOMAIN}_frontend_registered"] = True
@@ -141,10 +136,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not hass.data.get(f"{DOMAIN}_frontend_registered"):
         await async_register_frontend(hass)
         hass.data[f"{DOMAIN}_frontend_registered"] = True
-    controller = GridPidController(hass)
+
+    controller = GridPidController(hass, entry)
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = controller
+    entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
+
+
+async def _async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
