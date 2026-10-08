@@ -1,4 +1,4 @@
-const CARD_VERSION="2.0.1";
+const CARD_VERSION="2.0.3";
 
 class SungrowGridPidCardEditor extends HTMLElement {
   set hass(h){ this._hass=h; this._render(); }
@@ -64,12 +64,14 @@ class SungrowGridPidCard extends HTMLElement {
   _num(id){ const v=Number(this._state(id,NaN)); return Number.isFinite(v)?v:null; }
   _fmt(id){ const v=this._num(id); return v===null?"—":Math.round(v).toLocaleString()+" W"; }
   _more(id){ if(id) this.dispatchEvent(new CustomEvent("hass-more-info",{detail:{entityId:id},bubbles:true,composed:true})); }
-  _call(domain,service,data){ this._hass?.callService(domain,service,data); }
+  _call(domain,service,data){ return this._hass?.callService(domain,service,data); }
 
   _render(){
     if(!this.shadowRoot || !this._hass) return;
     const e=this._entities();
     const on=this._state(e.controller)==="on";
+    const controllerFound=!!e.controller;
+    const switchState=e.controller?this._state(e.controller):"not found";
     const targetState=e.target?this._hass.states[e.target]:null;
     const target=this._num(e.target)??15000;
     const min=Number(targetState?.attributes.min??0);
@@ -94,8 +96,8 @@ class SungrowGridPidCard extends HTMLElement {
       </style>
       <ha-card>
         <div class="top">
-          <div><div class="title">PID Grid Target</div><div class="sub">Sungrow Grid PID · ${on?"Running":"Stopped"}</div></div>
-          <button id="toggle" class="toggle ${on?"on":""}"><span class="knob"></span></button>
+          <div><div class="title">PID Grid Target</div><div class="sub" id="pidStatus">Sungrow Grid PID · ${on?"Running":"Stopped"}${controllerFound?"":" · switch not found"}</div></div>
+          <button id="toggle" class="toggle ${on?"on":""}" ${controllerFound?"":"disabled"} title="${e.controller||"Switch not found"}"><span class="knob"></span></button>
         </div>
 
         <div class="target" id="targetInfo">
@@ -124,7 +126,22 @@ class SungrowGridPidCard extends HTMLElement {
       if(ev.target===slider) return;
       this._more(e.target);
     };
-    this.shadowRoot.getElementById("toggle").onclick=()=>{ if(e.controller) this._call("switch",on?"turn_off":"turn_on",{entity_id:e.controller}); };
+    this.shadowRoot.getElementById("toggle").onclick=async()=>{
+      if(!e.controller)return;
+      const btn=this.shadowRoot.getElementById("toggle");
+      const status=this.shadowRoot.getElementById("pidStatus");
+      btn.disabled=true;
+      status.textContent="Sungrow Grid PID · "+(on?"Отключение...":"Включение...");
+      try {
+        await this._call("switch",on?"turn_off":"turn_on",{entity_id:e.controller});
+        const actual=this._state(e.controller);
+        status.textContent="Sungrow Grid PID · "+(actual==="on"?"Running":actual==="off"?"Stopped":"Статус: "+actual);
+        if(actual!==(on?"off":"on"))status.textContent+=" · проверьте журнал Home Assistant";
+      }catch(error){
+        status.textContent="Ошибка PID: "+(error?.message||String(error));
+        console.error("Sungrow Grid PID switch activation error",e.controller,error);
+      }finally{btn.disabled=false;}
+    };
     this.shadowRoot.getElementById("exportStat").onclick=()=>this._more(e.exportPower);
     this.shadowRoot.getElementById("chargeStat").onclick=()=>this._more(e.charge);
   }
