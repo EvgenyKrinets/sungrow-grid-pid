@@ -54,32 +54,20 @@ Target (input_number.pid_grid_target) ──► PID automation
 Memory (input_number.pid_integral) ◄──────┘
 ```
 
-Every second, the automation uses the **entity IDs selected during integration setup**, rather than relying on fixed names. The illustration below uses generic logical names:
+Every second, the automation uses the **entity IDs selected in integration settings**:
 
 ```text
-actual_export = state(configured_export_sensor)
-export_target = state(input_number.pid_grid_target)
-charge_limit  = attributes(configured_charge_number)  # min, max, step
-
-error = actual_export - export_target
-
-if error < 0:
-    requested_charge = charge_limit.min
-else:
-    requested_charge = previous_charge + error * 0.10
-
-new_output = clamp_and_align_to_device_step(requested_charge, charge_limit)
-set(configured_charge_number, new_output)
-set(input_number.pid_integral, new_output)
+error = actual_grid_export - export_target
+raw_output = previous_output + error * 0.10
+charge_command = clamp(raw_output, configured_charge_number.min,
+                      min(configured_charge_number.max, 25000))
 ```
 
-- **When measured export is lower than target**, the requested charge power immediately falls to the device's minimum supported command (for example 10 W).
-- **When measured export exceeds the target**, the controller gradually allows additional battery charging.
-- **PID off** stops further changes. It does **not** reset the charge command automatically.
+The controller continues adjusting smoothly even for small requested charging powers such as **20–50 W**. It does **not** impose a special cutoff when export falls below target, and it does **not** quantize commands to the UI slider's `step` attribute. Output is rounded to two decimal places and clamped to the entity's minimum and maximum. The default Sungrow number may have a 10 W minimum. Actual accepted command precision depends on the connected integration and inverter.
 
-The target and integral helpers have the default IDs shown above. The export sensor and battery number come from the integration's saved configuration and can be changed.
+The target and integral helpers retain their `input_number.pid_grid_target` and `input_number.pid_integral` identifiers. The export and battery entities use the selections saved during setup.
 
-**Note:** This is a priority-to-grid integral feedback controller with a low-output override, not a mathematically complete PID controller. It does not override Sungrow protections or guarantee that the inverter immediately changes actual battery charge current.
+This is an **integral feedback controller**, not a full PID with proportional and derivative terms. Turning it off stops updates but does not automatically clear the inverter's charge limit.
 
 ## 📦 Installation
 
@@ -122,32 +110,19 @@ The compact `custom:sungrow-grid-pid-card` displays:
 
 If your automation has a different entity ID, select the correct `automation.*` entity in the card editor. The same applies to the other entities.
 
-## 🔧 Charge power limits (min / max / step)
+## 🔧 Charging control and cloud response
 
-The PID now reads the selected `number.battery_max_charge_power` entity's `min`, `max`, and `step` attributes during each update. For example, a Sungrow charge-power control may report **min 10 W, max 25,000 W, step 100 W**.
+The controller now uses a **single smooth formula**:
 
-- Whenever measured export is below target, the command becomes the **minimum supported value** (for example **10 W**), not an invalid **0 W**.
-- In normal conditions, the requested output is bounded by the entity's supported limits and the PID's 25,000 W ceiling, and aligned to the entity's step starting from its minimum.
-- `input_number.pid_integral` is updated with the same accepted **requested** setpoint, avoiding buildup of an unattainable internal 0 W target.
-- **This is a command limit, not a guarantee of actual battery charge current.** Sungrow may impose other control restrictions.
+```text
+output_new = clamp(output_old + (export - target) × 0.10, min, max)
+```
 
-On upgrading, the installer safely updates recognized **unchanged integration-generated PID formulas** from earlier releases, creating an `automations.yaml.sungrow-grid-pid.bak` backup before changing the file. Custom manual formulas are not overwritten, and a manually created automation with the same alias is preserved. Verify the actual YAML in **Settings → Automations & scenes** after upgrade and ensure no second automation is controlling the same charge limit.
+When export falls below target, the command decreases gradually with no 2 kW threshold, no forced jump to the minimum, and no artificial 100 W quantization. It can calculate and request 20 W, 30 W, 50 W, or other low values when the selected entity supports them.
 
-### 🔄 Automatic migration of an existing PID automation
+For example, if the charging control reports `min: 10`, `max: 25000`, `step: 100`, the controller clamps to 10–25,000 W but does not assume the UI step limits the actual service command. If the service rejects particular intermediate values, check its integration requirements.
 
-Starting with **v3.0.15**, the installer can recognize an existing automation named `Simple Grid Battery Controller` even when it does **not** have an `id` field (as in an older manually created automation). It checks for the known original output formula and the expected battery/helper service calls, updates **only the `output_new` formula**, and creates an `automations.yaml.sungrow-grid-pid.bak` backup. It will not create a duplicate automation or overwrite unknown custom formulas.
-
-The updated control requests the charging number's **minimum supported value** whenever `actual_export < export_target`; otherwise it uses gradual integral feedback and aligns to the entity's `min`, `max`, and `step`. For example, with a 15,000 W target, 10,215 W export, and a charge number with minimum 10 W, the requested charge command is 10 W. **Actual inverter response may lag behind the command.**
-
-**Important:** HACS updating the integration does not necessarily update every existing custom automation. On restart, check the integration logs for `Updated existing PID automation formula`. If the automation is custom or stored outside the standard `automations.yaml`, inspect it manually before trusting the new behavior.
-
-## ☁️ Fast response to clouds and export shortfall
-
-With the updated controller, **any negative export error** triggers an immediate request for the configured number entity's supported minimum. There is **no longer a fixed 2 kW deficit threshold**.
-
-For example, with a configured 16,000 W target and actual measured export of 14,467 W, the controller requests the entity's minimum (10 W in the example setup), aligned to its supported increment. A 140 W command while export is short of the target may indicate that the running automation still uses an older formula, or that the inverter has not yet applied a recent command.
-
-The installer upgrades known unchanged generated formulas, including the previous dynamic min/max/step variant. It backs up `automations.yaml` before modification and never overwrites manually modified formulas. **Check the actual automation YAML after installation**, because the integration version and the installed automation contents can differ.
+**Upgrade behavior:** the installer updates known formulas from earlier project versions in the existing `Simple Grid Battery Controller` automation (including older ID-less copies), backs up `automations.yaml` first and preserves the rest of that automation. Unknown custom formulas are deliberately left unchanged; verify the active automation after updating.
 
 ## 🗒️ Hide Activity entries while keeping the history graph
 
