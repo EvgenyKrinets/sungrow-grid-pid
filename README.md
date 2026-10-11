@@ -60,7 +60,7 @@ Every second, the automation uses the **entity IDs selected in integration setti
 error = actual_grid_export - export_target
 raw_output = previous_output + error * 0.10
 charge_command = clamp(raw_output, configured_charge_number.min,
-                      min(configured_charge_number.max, 25000))
+                      configured_charge_number.max)
 ```
 
 The controller continues adjusting smoothly even for small requested charging powers such as **20–50 W**. It does **not** impose a special cutoff when export falls below target, and it does **not** quantize commands to the UI slider's `step` attribute. Output is rounded to two decimal places and clamped to the entity's minimum and maximum. The default Sungrow number may have a 10 W minimum. Actual accepted command precision depends on the connected integration and inverter.
@@ -93,7 +93,7 @@ Default values match the original Sungrow setup and can be changed through integ
 | Grid target helper | `input_number.pid_grid_target` |
 | PID integral helper | `input_number.pid_integral` |
 | Target range | 0–17,000 W, 1,000 W step |
-| Output range | 0–25,000 W |
+| Output range | Automatically read from the selected battery charge number's `min` and `max` attributes |
 | Feedback gain | 0.10 |
 | Update interval | 1 second |
 
@@ -112,15 +112,16 @@ If your automation has a different entity ID, select the correct `automation.*` 
 
 ## 🔧 Charging control and cloud response
 
-The controller now uses a **single smooth formula**:
+The controller now uses a **single smooth formula**. Both limits are read from the **battery charge number selected in integration settings**; setup no longer requires a hardcoded 25,000 W maximum:
 
 ```text
-output_new = clamp(output_old + (export - target) × 0.10, min, max)
+output_new = clamp(output_old + (export - target) × 0.10,
+                   charge_entity.min, charge_entity.max)
 ```
 
 When export falls below target, the command decreases gradually with no 2 kW threshold, no forced jump to the minimum, and no artificial 100 W quantization. It can calculate and request 20 W, 30 W, 50 W, or other low values when the selected entity supports them.
 
-For example, if the charging control reports `min: 10`, `max: 25000`, `step: 100`, the controller clamps to 10–25,000 W but does not assume the UI step limits the actual service command. If the service rejects particular intermediate values, check its integration requirements.
+For example, if the charging control reports `min: 10`, `max: 25000`, `step: 100`, the controller clamps to that entity's actual 10–25,000 W range but does not assume the UI step limits the actual service command. If the service rejects particular intermediate values, check its integration requirements.
 
 **Upgrade behavior:** the installer updates known formulas from earlier project versions in the existing `Simple Grid Battery Controller` automation (including older ID-less copies), backs up `automations.yaml` first and preserves the rest of that automation. Unknown custom formulas are deliberately left unchanged; verify the active automation after updating.
 
