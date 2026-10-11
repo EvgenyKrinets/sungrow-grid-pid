@@ -39,18 +39,10 @@ def make_automation(export_entity, charge_entity, scene_entity):
                 "output_old": "{{ states('input_number.pid_integral') | float }}",
             }},
             {"variables": {"error": "{{ grid - target }}"}},
-            {"variables": {"output_new": """{{- '' -}}
-{% set lo = state_attr('__CHARGE__', 'min') | float(10) %}
+            {"variables": {"output_new": """{% set lo = state_attr('__CHARGE__', 'min') | float(10) %}
 {% set hi = [state_attr('__CHARGE__', 'max') | float(25000), 25000] | min %}
-{% set step = state_attr('__CHARGE__', 'step') | float(1) %}
-{% set step = step if step > 0 else 1 %}
-{% set desired = lo if error < 0 else output_old + error * 0.10 %}
-{% set desired = [[desired, lo] | max, hi] | min %}
-{% set n = ((desired - lo) / step) | round(0) | int %}
-{% set nmax = ((hi - lo) / step) | round(0, "floor") | int %}
-{% set n = [[n, 0] | max, nmax] | min %}
-{% set aligned = lo + n * step %}
-{{ [[aligned, lo] | max, hi] | min | round(2) }}
+{% set output = output_old + error * 0.10 %}
+{{ [[output, lo] | max, hi] | min | round(2) }}
 """.replace("__CHARGE__", charge_entity)}},
             {"action": "number.set_value", "target": {"entity_id": charge_entity}, "data": {"value": "{{ output_new }}"}},
             {"action": "input_number.set_value", "target": {"entity_id": "input_number.pid_integral"}, "data": {"value": "{{ output_new }}"}},
@@ -117,10 +109,13 @@ def write_automation(path, automation):
         and "| round(0)" in normalized
     )
     old_cloud = "error <= -2000" in normalized and old_simple
+    # Recognize all our previous dynamic min/max/step variants, including
+    # the v3.0.13 "error < 0" forced-minimum formula.
     old_dynamic = (
         "{% set lo = state_attr(" in formula
         and "{% set aligned = lo + n * step %}" in formula
-        and "error <= -2000" in formula
+        and "{% set desired =" in formula
+        and "output_old + error * 0.10" in formula
     )
     if not (old_simple or old_cloud or old_dynamic):
         _LOGGER.warning("PID automation formula is custom; preserving it: %s", item.get("alias"))
