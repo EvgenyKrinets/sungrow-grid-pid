@@ -46,6 +46,8 @@ def make_automation(export_entity, charge_entity, scene_entity):
 {% set desired = lo if error <= -2000 else output_old + error * 0.10 %}
 {% set desired = [[desired, lo] | max, hi] | min %}
 {% set n = ((desired - lo) / step) | round(0) | int %}
+{% set nmax = ((hi - lo) / step) | round(0, "floor") | int %}
+{% set n = [[n, 0] | max, nmax] | min %}
 {% set aligned = lo + n * step %}
 {{ [[aligned, lo] | max, hi] | min | round(2) }}
 """.replace("__CHARGE__", charge_entity)}},
