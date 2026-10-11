@@ -135,7 +135,7 @@ On upgrading, the installer safely updates recognized **unchanged integration-ge
 
 ### 🔄 Automatic migration of an existing PID automation
 
-Starting with **v3.0.14**, the installer can recognize an existing automation named `Simple Grid Battery Controller` even when it does **not** have an `id` field (as in an older manually created automation). It checks for the known original output formula and the expected battery/helper service calls, updates **only the `output_new` formula**, and creates an `automations.yaml.sungrow-grid-pid.bak` backup. It will not create a duplicate automation or overwrite unknown custom formulas.
+Starting with **v3.0.15**, the installer can recognize an existing automation named `Simple Grid Battery Controller` even when it does **not** have an `id` field (as in an older manually created automation). It checks for the known original output formula and the expected battery/helper service calls, updates **only the `output_new` formula**, and creates an `automations.yaml.sungrow-grid-pid.bak` backup. It will not create a duplicate automation or overwrite unknown custom formulas.
 
 The updated control requests the charging number's **minimum supported value** whenever `actual_export < export_target`; otherwise it uses gradual integral feedback and aligns to the entity's `min`, `max`, and `step`. For example, with a 15,000 W target, 10,215 W export, and a charge number with minimum 10 W, the requested charge command is 10 W. **Actual inverter response may lag behind the command.**
 
