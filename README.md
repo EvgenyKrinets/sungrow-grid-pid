@@ -133,6 +133,14 @@ The PID now reads the selected `number.battery_max_charge_power` entity's `min`,
 
 On upgrading, the installer safely updates recognized **unchanged integration-generated PID formulas** from earlier releases, creating an `automations.yaml.sungrow-grid-pid.bak` backup before changing the file. Custom manual formulas are not overwritten, and a manually created automation with the same alias is preserved. Verify the actual YAML in **Settings → Automations & scenes** after upgrade and ensure no second automation is controlling the same charge limit.
 
+### 🔄 Automatic migration of an existing PID automation
+
+Starting with **v3.0.14**, the installer can recognize an existing automation named `Simple Grid Battery Controller` even when it does **not** have an `id` field (as in an older manually created automation). It checks for the known original output formula and the expected battery/helper service calls, updates **only the `output_new` formula**, and creates an `automations.yaml.sungrow-grid-pid.bak` backup. It will not create a duplicate automation or overwrite unknown custom formulas.
+
+The updated control requests the charging number's **minimum supported value** whenever `actual_export < export_target`; otherwise it uses gradual integral feedback and aligns to the entity's `min`, `max`, and `step`. For example, with a 15,000 W target, 10,215 W export, and a charge number with minimum 10 W, the requested charge command is 10 W. **Actual inverter response may lag behind the command.**
+
+**Important:** HACS updating the integration does not necessarily update every existing custom automation. On restart, check the integration logs for `Updated existing PID automation formula`. If the automation is custom or stored outside the standard `automations.yaml`, inspect it manually before trusting the new behavior.
+
 ## ☁️ Fast response to clouds and export shortfall
 
 With the updated controller, **any negative export error** triggers an immediate request for the configured number entity's supported minimum. There is **no longer a fixed 2 kW deficit threshold**.
