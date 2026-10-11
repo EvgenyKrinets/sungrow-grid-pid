@@ -111,6 +111,17 @@ The compact `custom:sungrow-grid-pid-card` displays:
 
 If your automation has a different entity ID, select the correct `automation.*` entity in the card editor. The same applies to the other entities.
 
+## 🔧 Charge power limits (min / max / step)
+
+The PID now reads the selected `number.battery_max_charge_power` entity's `min`, `max`, and `step` attributes during each update. For example, a Sungrow charge-power control may report **min 10 W, max 25,000 W, step 100 W**.
+
+- On a large export shortfall (2,000 W or more), the command becomes the **minimum supported value** (for example **10 W**), not an invalid **0 W**.
+- In normal conditions, the requested output is bounded by the entity's supported limits and the PID's 25,000 W ceiling, and aligned to the entity's step starting from its minimum.
+- `input_number.pid_integral` is updated with the same accepted **requested** setpoint, avoiding buildup of an unattainable internal 0 W target.
+- **This is a command limit, not a guarantee of actual battery charge current.** Sungrow may impose other control restrictions.
+
+On upgrading, the installer safely updates the two **unchanged integration-generated PID formulas** from earlier releases, creating an `automations.yaml.sungrow-grid-pid.bak` backup before changing the file. Custom manual formulas are not overwritten, and a manually created automation with the same alias is preserved. Verify the actual YAML in **Settings → Automations & scenes** after upgrade and ensure no second automation is controlling the same charge limit.
+
 ## ☁️ Fast response to sudden clouds
 
 The standard feedback formula changes battery charge power gradually. When PV power drops suddenly, its stored integral can keep a positive charge command for several seconds.
@@ -120,12 +131,12 @@ The updated generated automation adds **rapid cutoff**:
 ```text
 error = grid_export - grid_target
 if error <= -2000 W:
-    battery_charge_command = 0 W
+    battery_charge_command = device_minimum (for example 10 W)
 else:
     battery_charge_command = clamp(integral + error × 0.10, 0, 25000 W)
 ```
 
-Example: export target **15 kW**, measured export suddenly drops to **8 kW**. The charge command is set to **0 W** on the next one-second automation run. The inverter may take additional time to respond. This is a simple cutoff strategy, not a certified grid protection.
+Example: export target **15 kW**, measured export suddenly drops to **8 kW**. The charge command is set to the **device minimum** on the next one-second automation run. The inverter may take additional time to respond. This is a simple cutoff strategy, not a certified grid protection.
 
 On update, the installer replaces **only the original unmodified generated formula** in its own `automations.yaml` entry (ID `sungrow_grid_pid_simple_controller`). Before modifying it, it makes a backup next to `automations.yaml` ending in `.sungrow-grid-pid.bak`. **Existing manual automations and previously modified formulas are not overwritten**; update those manually if desired.
 
