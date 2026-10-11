@@ -27,7 +27,7 @@
       "entity_not_found": "Entity not found",
       "entity_unavailable": "Entity unavailable",
       "entity_not_numeric": "Sensor is not numeric",
-      "charge_range": "Charge control must support at least 25000 W"
+      "charge_range": "Invalid charge control range: max must be greater than min"
     }
   },
   "options": {
@@ -46,7 +46,7 @@
       "entity_not_found": "Entity not found",
       "entity_unavailable": "Entity unavailable",
       "entity_not_numeric": "Sensor is not numeric",
-      "charge_range": "Charge control must support at least 25000 W"
+      "charge_range": "Invalid charge control range: max must be greater than min"
     }
   }
 }
