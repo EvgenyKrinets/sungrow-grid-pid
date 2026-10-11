@@ -1,6 +1,6 @@
 name: Build brand and release
 # Generates HA 2026.3+ local branding and publishes semantic release.
-# Release target: dynamic manifest.json version; v3.0.11 automatically exclude charge-power Activity preserving history
+# Release target: dynamic manifest.json version; v3.0.12 automatically exclude charge-power Activity preserving history
 # Visual dashboard release trigger
 # Publish version from manifest.json; never retag old releases
 
