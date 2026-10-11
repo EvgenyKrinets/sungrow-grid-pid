@@ -48,7 +48,7 @@ def make_automation(export_entity, charge_entity, scene_entity):
 {% set n = ((desired - lo) / step) | round(0) | int %}
 {% set aligned = lo + n * step %}
 {{ [[aligned, lo] | max, hi] | min | round(2) }}
-""".replace('__CHARGE__','" + charge_entity + "')}},
+""".replace("__CHARGE__", charge_entity)}},
             {"action": "number.set_value", "target": {"entity_id": charge_entity}, "data": {"value": "{{ output_new }}"}},
             {"action": "input_number.set_value", "target": {"entity_id": "input_number.pid_integral"}, "data": {"value": "{{ output_new }}"}},
         ],
