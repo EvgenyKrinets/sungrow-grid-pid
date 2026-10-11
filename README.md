@@ -129,22 +129,20 @@ Example: export target **15 kW**, measured export suddenly drops to **8 kW**. Th
 
 On update, the installer replaces **only the original unmodified generated formula** in its own `automations.yaml` entry (ID `sungrow_grid_pid_simple_controller`). Before modifying it, it makes a backup next to `automations.yaml` ending in `.sungrow-grid-pid.bak`. **Existing manual automations and previously modified formulas are not overwritten**; update those manually if desired.
 
-## 🗄️ Reduce Recorder database load
+## 🗒️ Hide Activity entries while keeping the history graph
 
-The charge-power command `number.battery_max_charge_power` can change every second. If you do not need its history or Activity entries, exclude **only this entity** from Recorder.
-
-In `configuration.yaml`, merge the following into your existing Recorder settings (do **not** create a second `recorder:` key):
+To **keep the Battery max charge power history graph** but hide frequent entries in the entity's **Activity / Logbook** section, configure `logbook.exclude`, **not** `recorder.exclude`:
 
 ```yaml
-recorder:
+logbook:
   exclude:
     entities:
       - number.battery_max_charge_power
 ```
 
-After checking the YAML configuration, restart Home Assistant. The entity will still be available for the automation and in dashboards, but new Recorder history/activity records for it will no longer be retained. **Existing historical records are not purged automatically.** Excluding an entity from Recorder may change its state-restoration behavior after a restart, depending on the integration.
+Merge this into an existing `logbook:` section if you already have one. Check configuration and restart Home Assistant. Recorder will continue storing the sensor's history, and the history graph will remain available. This does **not** reduce Recorder database size; it filters Activity/Logbook entries. Older already-open Activity results may require a page refresh.
 
-The installer intentionally does **not** edit `configuration.yaml` automatically, to avoid overwriting a user's existing Recorder exclusions or unrelated settings.
+**Do not put this entity under `recorder.exclude` if you want to preserve the graph.**
 
 ## 🛟 Troubleshooting
 
