@@ -6,6 +6,7 @@ their in-memory storage collection. Existing helpers are never overwritten.
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 import shutil
 
@@ -70,42 +71,69 @@ def write_automation(path, automation):
         content = []
     if not isinstance(content, list):
         raise ValueError("automations.yaml must contain a list; no files changed")
-    found = next((i for i, a in enumerate(content) if isinstance(a, dict) and a.get("id") == AUTOMATION_ID), None)
+    by_id = [i for i, item in enumerate(content) if isinstance(item, dict) and item.get("id") == AUTOMATION_ID]
+    by_alias = [i for i, item in enumerate(content) if isinstance(item, dict) and item.get("alias") == automation["alias"]]
+    # Never modify an ambiguous automation or create a second one.
+    if len(by_id) > 1 or len(by_alias) > 1:
+        _LOGGER.error("More than one PID automation exists; refusing automatic edits")
+        return "ambiguous"
+    found = by_id[0] if by_id else (by_alias[0] if by_alias else None)
     if found is None:
-        # Preserve an existing manually-authored automation with the same name.
-        if any(isinstance(a, dict) and a.get("alias") == automation["alias"] for a in content):
-            return "existing_manual"
         content.append(automation)
         write_utf8_file_atomic(str(path), dump(content))
         return "created"
-    # Change only the previously generated expression; do not replace other user edits.
+
     item = content[found]
-    actions = item.get("actions", [])
-    known_formulas = {
-        "{% set x = output_old + (error * 0.10) %} {{ [[x, 0] | max, 25000] | min | round(0) }}",
-        "{% if error <= -2000 %}0{% else %}{% set x = output_old + (error * 0.10) %}{{ [[x, 0] | max, 25000] | min | round(0) }}{% endif %}",
-    }
-    try:
-        action = next(a for a in actions if isinstance(a, dict) and "output_new" in a.get("variables", {}))
-        current_formula = action["variables"]["output_new"]
-        generated_dynamic_formula = (
-            isinstance(current_formula, str)
-            and "{% set desired = lo if error <= -2000 else output_old + error * 0.10 %}" in current_formula
-            and "{% set lo = state_attr(" in current_formula
-            and "{% set aligned = lo + n * step %}" in current_formula
-        )
-        if current_formula not in known_formulas and not generated_dynamic_formula:
-            _LOGGER.warning("PID automation formula was modified manually; skipping automatic update.")
-            return "existing_custom"
-        updated_action = next(a for a in automation["actions"] if "output_new" in a.get("variables", {}))
-        if path.exists():
-            shutil.copy2(path, path.with_name(path.name + ".sungrow-grid-pid.bak"))
-        action["variables"]["output_new"] = updated_action["variables"]["output_new"]
-        write_utf8_file_atomic(str(path), dump(content))
-        return "updated"
-    except (AttributeError, KeyError, StopIteration, TypeError):
+    actions = item.get("actions", item.get("action", []))
+    if not isinstance(actions, list):
         return "existing_custom"
 
+    def target_matches(action, service, entity):
+        if not isinstance(action, dict) or action.get("action", action.get("service")) != service:
+            return False
+        target = action.get("target", {})
+        return target.get("entity_id") == entity
+
+    # Only migrate the original user's known automation pattern or our own ID.
+    if not any(target_matches(a, "input_number.set_value", "input_number.pid_integral") for a in actions):
+        return "existing_custom"
+    if not any(target_matches(a, "number.set_value", automation["actions"][3]["target"]["entity_id"]) for a in actions):
+        return "existing_custom"
+    outputs = [a for a in actions if isinstance(a, dict) and isinstance(a.get("variables"), dict) and "output_new" in a["variables"]]
+    if len(outputs) != 1:
+        return "existing_custom"
+    action = outputs[0]
+    formula = str(action["variables"]["output_new"])
+    new_formula = automation["actions"][2]["variables"]["output_new"]
+    if formula.strip() == new_formula.strip():
+        return "existing"
+
+    # YAML folded > may change whitespace: match the original algorithm
+    # structurally, rather than exact formatting. Do not overwrite custom PID.
+    normalized = re.sub(r"\\s+", " ", formula).strip()
+    old_simple = (
+        re.search(r"{%\\s*set\\s+x\\s*=\\s*output_old\\s*\\+\\s*\\(error\\s*\\*\\s*0\\.10\\)\\s*%}", normalized)
+        and "[[x, 0] | max, 25000] | min" in normalized
+        and "| round(0)" in normalized
+    )
+    old_cloud = "error <= -2000" in normalized and old_simple
+    old_dynamic = (
+        "{% set lo = state_attr(" in formula
+        and "{% set aligned = lo + n * step %}" in formula
+        and "error <= -2000" in formula
+    )
+    if not (old_simple or old_cloud or old_dynamic):
+        _LOGGER.warning("PID automation formula is custom; preserving it: %s", item.get("alias"))
+        return "existing_custom"
+
+    # Preserve the user's automation ID, description, enabled state and all
+    # other action steps. Only replace the old supported output expression.
+    if path.exists():
+        shutil.copy2(path, path.with_name(path.name + ".sungrow-grid-pid.bak"))
+    action["variables"]["output_new"] = new_formula
+    write_utf8_file_atomic(str(path), dump(content))
+    _LOGGER.info("Updated existing PID automation formula (id=%s, alias=%s)", item.get("id"), item.get("alias"))
+    return "updated"
 
 async def install_helpers(hass):
     """Seed official input_number storage without touching existing data."""
