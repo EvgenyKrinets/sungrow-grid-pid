@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+import shutil
 
 from homeassistant.helpers.storage import Store
 from homeassistant.util.file import write_utf8_file_atomic
@@ -35,7 +36,7 @@ def make_automation(export_entity, charge_entity, scene_entity):
                 "output_old": "{{ states('input_number.pid_integral') | float }}",
             }},
             {"variables": {"error": "{{ grid - target }}"}},
-            {"variables": {"output_new": "{% set x = output_old + (error * 0.10) %} {{ [[x, 0] | max, 25000] | min | round(0) }}"}},
+            {"variables": {"output_new": "{% if error <= -2000 %}0{% else %}{% set x = output_old + (error * 0.10) %}{{ [[x, 0] | max, 25000] | min | round(0) }}{% endif %}"}},
             {"action": "number.set_value", "target": {"entity_id": charge_entity}, "data": {"value": "{{ output_new }}"}},
             {"action": "input_number.set_value", "target": {"entity_id": "input_number.pid_integral"}, "data": {"value": "{{ output_new }}"}},
         ],
@@ -63,8 +64,22 @@ def write_automation(path, automation):
         content.append(automation)
         write_utf8_file_atomic(str(path), dump(content))
         return "created"
-    # User edits are preserved on subsequent starts.
-    return "existing"
+    # Change only the previously generated expression; do not replace other user edits.
+    item = content[found]
+    actions = item.get("actions", [])
+    old_formula = "{% set x = output_old + (error * 0.10) %} {{ [[x, 0] | max, 25000] | min | round(0) }}"
+    try:
+        action = next(a for a in actions if isinstance(a, dict) and "output_new" in a.get("variables", {}))
+        if action["variables"]["output_new"] != old_formula:
+            return "existing_custom"
+        updated_action = next(a for a in automation["actions"] if "output_new" in a.get("variables", {}))
+        if path.exists():
+            shutil.copy2(path, path.with_name(path.name + ".sungrow-grid-pid.bak"))
+        action["variables"]["output_new"] = updated_action["variables"]["output_new"]
+        write_utf8_file_atomic(str(path), dump(content))
+        return "updated"
+    except (AttributeError, KeyError, StopIteration, TypeError):
+        return "existing_custom"
 
 
 async def install_helpers(hass):
@@ -141,7 +156,7 @@ async def install(hass, entry):
         entry.options.get("scene_entity", entry.data.get("scene_entity", "scene.self_consumption_mode_max_battery_discharge")),
     )
     result = await hass.async_add_executor_job(write_automation, hass.config.path("automations.yaml"), automation)
-    if result in ("created", "existing_manual", "existing"):
+    if result in ("created", "existing_manual", "existing", "updated"):
         await hass.services.async_call("automation", "reload", {}, blocking=True)
     candidates = [(state.entity_id, state.attributes.get("friendly_name")) for state in hass.states.async_all("automation") if any(term in state.entity_id.lower() for term in ("grid", "pid", "battery"))]
     if not candidates:
