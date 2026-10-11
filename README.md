@@ -111,6 +111,41 @@ The compact `custom:sungrow-grid-pid-card` displays:
 
 If your automation has a different entity ID, select the correct `automation.*` entity in the card editor. The same applies to the other entities.
 
+## ☁️ Fast response to sudden clouds
+
+The standard feedback formula changes battery charge power gradually. When PV power drops suddenly, its stored integral can keep a positive charge command for several seconds.
+
+The updated generated automation adds **rapid cutoff**:
+
+```text
+error = grid_export - grid_target
+if error <= -2000 W:
+    battery_charge_command = 0 W
+else:
+    battery_charge_command = clamp(integral + error × 0.10, 0, 25000 W)
+```
+
+Example: export target **15 kW**, measured export suddenly drops to **8 kW**. The charge command is set to **0 W** on the next one-second automation run. The inverter may take additional time to respond. This is a simple cutoff strategy, not a certified grid protection.
+
+On update, the installer replaces **only the original unmodified generated formula** in its own `automations.yaml` entry (ID `sungrow_grid_pid_simple_controller`). Before modifying it, it makes a backup next to `automations.yaml` ending in `.sungrow-grid-pid.bak`. **Existing manual automations and previously modified formulas are not overwritten**; update those manually if desired.
+
+## 🗄️ Reduce Recorder database load
+
+The charge-power command `number.battery_max_charge_power` can change every second. If you do not need its history or Activity entries, exclude **only this entity** from Recorder.
+
+In `configuration.yaml`, merge the following into your existing Recorder settings (do **not** create a second `recorder:` key):
+
+```yaml
+recorder:
+  exclude:
+    entities:
+      - number.battery_max_charge_power
+```
+
+After checking the YAML configuration, restart Home Assistant. The entity will still be available for the automation and in dashboards, but new Recorder history/activity records for it will no longer be retained. **Existing historical records are not purged automatically.** Excluding an entity from Recorder may change its state-restoration behavior after a restart, depending on the integration.
+
+The installer intentionally does **not** edit `configuration.yaml` automatically, to avoid overwriting a user's existing Recorder exclusions or unrelated settings.
+
 ## 🛟 Troubleshooting
 
 | Problem | What to check |
