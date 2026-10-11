@@ -43,7 +43,7 @@ def make_automation(export_entity, charge_entity, scene_entity):
 {% set hi = [state_attr('__CHARGE__', 'max') | float(25000), 25000] | min %}
 {% set step = state_attr('__CHARGE__', 'step') | float(1) %}
 {% set step = step if step > 0 else 1 %}
-{% set desired = lo if error <= -2000 else output_old + error * 0.10 %}
+{% set desired = lo if error < 0 else output_old + error * 0.10 %}
 {% set desired = [[desired, lo] | max, hi] | min %}
 {% set n = ((desired - lo) / step) | round(0) | int %}
 {% set nmax = ((hi - lo) / step) | round(0, "floor") | int %}
@@ -87,7 +87,15 @@ def write_automation(path, automation):
     }
     try:
         action = next(a for a in actions if isinstance(a, dict) and "output_new" in a.get("variables", {}))
-        if action["variables"]["output_new"] not in known_formulas:
+        current_formula = action["variables"]["output_new"]
+        generated_dynamic_formula = (
+            isinstance(current_formula, str)
+            and "{% set desired = lo if error <= -2000 else output_old + error * 0.10 %}" in current_formula
+            and "{% set lo = state_attr(" in current_formula
+            and "{% set aligned = lo + n * step %}" in current_formula
+        )
+        if current_formula not in known_formulas and not generated_dynamic_formula:
+            _LOGGER.warning("PID automation formula was modified manually; skipping automatic update.")
             return "existing_custom"
         updated_action = next(a for a in automation["actions"] if "output_new" in a.get("variables", {}))
         if path.exists():
