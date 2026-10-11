@@ -110,9 +110,9 @@ def write_automation(path, automation):
 
     # YAML folded > may change whitespace: match the original algorithm
     # structurally, rather than exact formatting. Do not overwrite custom PID.
-    normalized = re.sub(r"\\s+", " ", formula).strip()
+    normalized = re.sub(r"\s+", " ", formula).strip()
     old_simple = (
-        re.search(r"{%\\s*set\\s+x\\s*=\\s*output_old\\s*\\+\\s*\\(error\\s*\\*\\s*0\\.10\\)\\s*%}", normalized)
+        re.search(r"{%\s*set\s+x\s*=\s*output_old\s*\+\s*\(error\s*\*\s*0\.10\)\s*%}", normalized)
         and "[[x, 0] | max, 25000] | min" in normalized
         and "| round(0)" in normalized
     )
