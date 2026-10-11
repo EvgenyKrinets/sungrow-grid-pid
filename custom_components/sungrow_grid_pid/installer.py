@@ -74,7 +74,7 @@ def write_automation(path, automation):
     by_id = [i for i, item in enumerate(content) if isinstance(item, dict) and item.get("id") == AUTOMATION_ID]
     by_alias = [i for i, item in enumerate(content) if isinstance(item, dict) and item.get("alias") == automation["alias"]]
     # Never modify an ambiguous automation or create a second one.
-    if len(by_id) > 1 or len(by_alias) > 1:
+    if len(by_id) > 1 or len(by_alias) > 1 or (by_id and by_alias and by_id[0] != by_alias[0]):
         _LOGGER.error("More than one PID automation exists; refusing automatic edits")
         return "ambiguous"
     found = by_id[0] if by_id else (by_alias[0] if by_alias else None)
