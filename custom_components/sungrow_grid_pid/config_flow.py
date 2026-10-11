@@ -51,7 +51,7 @@ def verify(hass, values):
             try:
                 minimum = float(state.attributes.get("min", 0))
                 maximum = float(state.attributes.get("max", 0))
-                if not (math.isfinite(minimum) and math.isfinite(maximum) and maximum >= 25000):
+                if not (math.isfinite(minimum) and math.isfinite(maximum) and maximum > minimum):
                     errors[key] = "charge_range"
             except (ValueError, TypeError):
                 errors[key] = "charge_range"
