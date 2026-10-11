@@ -131,16 +131,18 @@ On update, the installer replaces **only the original unmodified generated formu
 
 ## 🗒️ Hide Activity entries while keeping the history graph
 
-On initial setup or restart, the integration **automatically adds** this Logbook-only exclusion to simple `configuration.yaml` configurations (and creates `configuration.yaml.sungrow-grid-pid.bak` before making changes). Home Assistant must restart once more for the new Logbook filter to take effect. For complex YAML configurations the installer leaves the file untouched and explains why in the logs. To **keep the Battery max charge power graph** but hide frequent **Activity / Logbook** entries, the configuration is:
+On initial setup or restart, the integration **automatically adds** these three Logbook-only exclusions to simple `configuration.yaml` configurations (and creates `configuration.yaml.sungrow-grid-pid.bak` before making changes). Home Assistant must restart once more for the new Logbook filter to take effect. For complex YAML configurations (including external includes) the installer leaves the file untouched and explains why in the logs. To **keep the Battery max charge power graph** but hide frequent **Activity / Logbook** entries, the configuration is:
 
 ```yaml
 logbook:
   exclude:
     entities:
       - number.battery_max_charge_power
+      - input_number.pid_integral
+      - automation.simple_grid_battery_controller
 ```
 
-Merge this into an existing `logbook:` section if you already have one. Check configuration and restart Home Assistant. Recorder will continue storing the sensor's history, and the history graph will remain available. This does **not** reduce Recorder database size; it filters Activity/Logbook entries. Older already-open Activity results may require a page refresh.
+Merge this into an existing `logbook:` section if you already have one. Check configuration and restart Home Assistant. Recorder will continue storing the sensor's history, and its history graph will remain available. The installer deliberately does not alter Recorder include/exclude filters, since altering them may remove the graph. This does **not** reduce Recorder database size; it filters Activity/Logbook entries. Older already-open Activity results may require a page refresh.
 
 **Do not put this entity under `recorder.exclude` if you want to preserve the graph.**
 
