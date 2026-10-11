@@ -46,7 +46,7 @@ def _add_exclusions(lines):
         if any(line.lstrip().startswith("logbook:") for line in lines):
             return None, "complex_logbook"
         lines.extend(["\n", "logbook:\n", "  exclude:\n", "    entities:\n"])
-        bounds = (len(lines) - 3, len(lines))
+        bounds = (len(lines) - 4, len(lines))
     else:
         bounds = current[0]
         if not _simple_section(lines, bounds):
