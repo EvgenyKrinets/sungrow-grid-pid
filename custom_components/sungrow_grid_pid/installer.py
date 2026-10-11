@@ -40,7 +40,7 @@ def make_automation(export_entity, charge_entity, scene_entity):
             }},
             {"variables": {"error": "{{ grid - target }}"}},
             {"variables": {"output_new": """{% set lo = state_attr('__CHARGE__', 'min') | float(10) %}
-{% set hi = [state_attr('__CHARGE__', 'max') | float(25000), 25000] | min %}
+{% set hi = state_attr('__CHARGE__', 'max') | float(25000) %}
 {% set output = output_old + error * 0.10 %}
 {{ [[output, lo] | max, hi] | min | round(2) }}
 """.replace("__CHARGE__", charge_entity)}},
@@ -117,7 +117,13 @@ def write_automation(path, automation):
         and "{% set desired =" in formula
         and "output_old + error * 0.10" in formula
     )
-    if not (old_simple or old_cloud or old_dynamic):
+    old_smooth_limited = (
+        "{% set lo = state_attr(" in formula
+        and "{% set output = output_old + error * 0.10 %}" in formula
+        and "[state_attr(" in formula
+        and "'max') | float(25000), 25000] | min" in formula
+    )
+    if not (old_simple or old_cloud or old_dynamic or old_smooth_limited):
         _LOGGER.warning("PID automation formula is custom; preserving it: %s", item.get("alias"))
         return "existing_custom"
 
