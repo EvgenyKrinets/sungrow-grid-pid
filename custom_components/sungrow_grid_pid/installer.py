@@ -143,8 +143,7 @@ async def install_helpers(hass):
     missing in the current running session. This registers the missing
     native InputNumber entities with Home Assistant immediately.
     """
-    from homeassistant.components.input_number import InputNumber
-    from homeassistant.components.input_number.const import DATA_INPUT_NUMBER
+    from homeassistant.components.input_number import DATA_INPUT_NUMBER, InputNumber
     from homeassistant.helpers.entity_registry import async_get as get_registry
 
     runtime = hass.data.get(DATA_INPUT_NUMBER)
