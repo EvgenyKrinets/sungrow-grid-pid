@@ -55,20 +55,42 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _LOGGER.info("Sungrow Grid PID automation: %s; helper restart required: %s", result, restart_needed)
 
+    async def activate_selected_scene(automation_entity: str) -> None:
+        scene = entry.options.get("scene_entity", entry.data.get("scene_entity", ""))
+        if not scene:
+            _LOGGER.warning("PID enabled via %s but no scene is configured", automation_entity)
+            return
+        if hass.states.get(scene) is None:
+            _LOGGER.error("PID enabled via %s but selected scene %s does not exist", automation_entity, scene)
+            return
+        try:
+            await hass.services.async_call(
+                "scene", "turn_on", {"entity_id": scene}, blocking=True
+            )
+            _LOGGER.info("Activated PID startup scene %s for %s", scene, automation_entity)
+        except Exception:
+            _LOGGER.exception("Failed activating PID startup scene %s for %s", scene, automation_entity)
+
     @callback
     def on_automation_state(event):
         new = event.data.get("new_state")
         old = event.data.get("old_state")
         if new is None or new.state != "on" or (old and old.state == "on"):
             return
-        scene = entry.options.get("scene_entity", entry.data.get("scene_entity", ""))
-        if scene and hass.states.get(scene):
-            hass.async_create_task(
-                hass.services.async_call("scene", "turn_on", {"entity_id": scene}, blocking=True)
-            )
+        entity_id = event.data.get("entity_id", "")
+        # The YAML automation often has no ID, so HA may assign a different
+        # entity_id. Resolve by friendly name just as the dashboard card does.
+        expected = "automation.simple_grid_battery_controller"
+        friendly = str(new.attributes.get("friendly_name", "")).strip().lower()
+        if entity_id != expected and friendly != "simple grid battery controller":
+            return
+        hass.async_create_task(activate_selected_scene(entity_id))
 
+    # Observe automation state changes regardless of HA-generated entity ID.
+    # The callback filters to this PID's automation before activating the scene.
     entry.async_on_unload(async_track_state_change_event(
-        hass, ["automation.simple_grid_battery_controller"], on_automation_state
+        hass, [state.entity_id for state in hass.states.async_all("automation")],
+        on_automation_state,
     ))
     entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
     return True
