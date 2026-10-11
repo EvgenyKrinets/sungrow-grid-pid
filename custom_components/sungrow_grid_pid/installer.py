@@ -156,7 +156,7 @@ async def install(hass, entry):
     )
     if logbook_result == "updated_restart_required":
         _LOGGER.warning(
-            "Sungrow Grid PID added Logbook exclusion for number.battery_max_charge_power. "
+            "Sungrow Grid PID added Logbook exclusions for charge power, PID Integral and PID automation. "
             "Restart Home Assistant to hide Activity entries; Recorder graphs remain active."
         )
     elif logbook_result not in ("already_configured",):
