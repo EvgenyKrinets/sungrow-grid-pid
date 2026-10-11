@@ -143,12 +143,15 @@ async def install_helpers(hass):
     missing in the current running session. This registers the missing
     native InputNumber entities with Home Assistant immediately.
     """
-    from homeassistant.components.input_number import DATA_INPUT_NUMBER, InputNumber
+    from homeassistant.components.input_number import InputNumber
+    from homeassistant.helpers.entity_component import DATA_INSTANCES
     from homeassistant.helpers.entity_registry import async_get as get_registry
 
-    runtime = hass.data.get(DATA_INPUT_NUMBER)
-    if runtime is None:
-        raise RuntimeError("input_number is not loaded; cannot install PID helpers")
+    # Use the generic entity-component registry rather than the version-specific
+    # internal input_number.DATA_INPUT_NUMBER symbol (missing on some HA releases).
+    component = hass.data.get(DATA_INSTANCES, {}).get("input_number")
+    if component is None:
+        raise RuntimeError("input_number entity component is not loaded")
 
     store = Store(hass, 1, "input_number")
     stored = await store.async_load() or {"items": []}
@@ -181,7 +184,7 @@ async def install_helpers(hass):
         # input_number integration. Register it with its existing component.
         native = InputNumber.from_storage(data)
         native.entity_id = entity_id
-        await runtime.component.async_add_entities([native])
+        await component.async_add_entities([native])
         if hass.states.get(entity_id) is None:
             raise RuntimeError(f"Failed to create required native helper {entity_id}")
         _LOGGER.info("Registered native PID helper: %s", entity_id)
