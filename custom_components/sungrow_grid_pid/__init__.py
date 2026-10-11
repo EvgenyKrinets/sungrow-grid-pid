@@ -5,7 +5,7 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.const import EVENT_STATE_CHANGED
 
 from .const import DOMAIN
 from .frontend import async_register_frontend
@@ -78,6 +78,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if new is None or new.state != "on" or (old and old.state == "on"):
             return
         entity_id = event.data.get("entity_id", "")
+        if not entity_id.startswith("automation."):
+            return
         # The YAML automation often has no ID, so HA may assign a different
         # entity_id. Resolve by friendly name just as the dashboard card does.
         expected = "automation.simple_grid_battery_controller"
@@ -86,12 +88,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             return
         hass.async_create_task(activate_selected_scene(entity_id))
 
-    # Observe automation state changes regardless of HA-generated entity ID.
-    # The callback filters to this PID's automation before activating the scene.
-    entry.async_on_unload(async_track_state_change_event(
-        hass, [state.entity_id for state in hass.states.async_all("automation")],
-        on_automation_state,
-    ))
+    # Listen even if the user's YAML automation is loaded after this integration.
+    entry.async_on_unload(hass.bus.async_listen(EVENT_STATE_CHANGED, on_automation_state))
     entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
     return True
 
