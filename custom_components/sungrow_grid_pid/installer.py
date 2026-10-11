@@ -137,28 +137,64 @@ def write_automation(path, automation):
     return "updated"
 
 async def install_helpers(hass):
-    """Seed official input_number storage without touching existing data."""
-    missing = [h for h, _ in HELPERS if hass.states.get(h) is None]
-    if not missing:
-        return False
+    """Create native input_number entities, persist their config and verify existence.
+
+    Previous versions only modified the storage file, leaving the entities
+    missing in the current running session. This registers the missing
+    native InputNumber entities with Home Assistant immediately.
+    """
+    from homeassistant.components.input_number import InputNumber
+    from homeassistant.components.input_number.const import DATA_INPUT_NUMBER
+    from homeassistant.helpers.entity_registry import async_get as get_registry
+
+    runtime = hass.data.get(DATA_INPUT_NUMBER)
+    if runtime is None:
+        raise RuntimeError("input_number is not loaded; cannot install PID helpers")
+
     store = Store(hass, 1, "input_number")
-    current = await store.async_load() or {"items": []}
-    items = current.setdefault("items", [])
-    known = {str(item.get("id", "")) for item in items}
-    pending = []
-    for entity, data in HELPERS:
-        key = entity.split(".", 1)[1]
-        if hass.states.get(entity) is not None or key in known:
+    stored = await store.async_load() or {"items": []}
+    items = stored.setdefault("items", [])
+    if not isinstance(items, list):
+        raise RuntimeError("Invalid input_number storage; refusing to overwrite")
+    by_id = {str(item.get("id")): item for item in items}
+    registry = get_registry(hass)
+
+    created = False
+    persisted_change = False
+    for entity_id, definition in HELPERS:
+        if hass.states.get(entity_id) is not None:
             continue
-        pending.append({"id": key, **data})
-    if not pending:
-        return False
-    # Storage is independently owned by HA. Installation changes become
-    # available on next core restart, rather than mutating a live collection.
-    items.extend(pending)
-    await store.async_save(current)
-    _LOGGER.warning("Created input_number helper definitions: %s. Restart Home Assistant to load them.", [x["id"] for x in pending])
-    return True
+        key = entity_id.partition(".")[2]
+        data = by_id.get(key)
+        if data is None:
+            # Do not override any entity owned by another integration, nor
+            # YAML-configured native helpers whose storage entry is absent.
+            existing = registry.async_get(entity_id)
+            if existing is not None:
+                _LOGGER.error("PID helper %s belongs to an existing registry entry; not replacing it", entity_id)
+                continue
+            data = {"id": key, **definition, "initial": 15000 if key == "pid_grid_target" else 0}
+            items.append(data)
+            by_id[key] = data
+            persisted_change = True
+
+        # InputNumber.from_storage uses the same native entity class as the
+        # input_number integration. Register it with its existing component.
+        native = InputNumber.from_storage(data)
+        native.entity_id = entity_id
+        await runtime.component.async_add_entities([native])
+        if hass.states.get(entity_id) is None:
+            raise RuntimeError(f"Failed to create required native helper {entity_id}")
+        _LOGGER.info("Registered native PID helper: %s", entity_id)
+        created = True
+
+    if persisted_change:
+        await store.async_save(stored)
+
+    missing = [eid for eid, _ in HELPERS if hass.states.get(eid) is None]
+    if missing:
+        raise RuntimeError(f"Required PID helpers remain missing: {missing}")
+    return created
 
 
 async def install_dashboard(hass):
