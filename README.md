@@ -131,7 +131,7 @@ On update, the installer replaces **only the original unmodified generated formu
 
 ## 🗒️ Hide Activity entries while keeping the history graph
 
-To **keep the Battery max charge power history graph** but hide frequent entries in the entity's **Activity / Logbook** section, configure `logbook.exclude`, **not** `recorder.exclude`:
+On initial setup or restart, the integration **automatically adds** this Logbook-only exclusion to simple `configuration.yaml` configurations (and creates `configuration.yaml.sungrow-grid-pid.bak` before making changes). Home Assistant must restart once more for the new Logbook filter to take effect. For complex YAML configurations the installer leaves the file untouched and explains why in the logs. To **keep the Battery max charge power graph** but hide frequent **Activity / Logbook** entries, the configuration is:
 
 ```yaml
 logbook:
