@@ -75,8 +75,8 @@ This is an **integral feedback controller**, not a full PID with proportional an
 2. Install **Sungrow Grid PID** and **restart Home Assistant**.
 3. Go to **Settings → Devices & services → Add integration → Sungrow Grid PID**.
 4. Confirm the pre-filled entity IDs or choose matching entities from the selectors.
-5. Complete setup. Existing native PID helpers are preserved; missing ones are set up by the installer.
-6. If helpers were newly created, **restart Home Assistant once more** to make them available.
+5. Complete setup. Existing native PID helpers are preserved; missing ones are created as native Home Assistant input_number entities and validated before setup continues.
+6. The installer creates the two native helpers and verifies that both are present. If a helper cannot be registered, setup reports an error instead of silently leaving the PID incomplete.
 7. Find **Simple Grid Battery Controller** under **Settings → Automations & scenes**, and the **Sungrow Grid PID** dashboard/card in Home Assistant.
 
 **Before enabling:** verify the automation is loaded, the export reading is valid, the target is within the permitted export limit, and no second PID automation is controlling the same charge-power entity.
@@ -142,6 +142,12 @@ Merge this into an existing `logbook:` section if you already have one. Check co
 
 **Do not put this entity under `recorder.exclude` if you want to preserve the graph.**
 
+### 🛠️ Helper installation repair (v3.0.18)
+
+The earlier installer could write records to Home Assistant's helper storage without actually registering the live `input_number` entities. That left the automation referencing `input_number.pid_integral` or `input_number.pid_grid_target` with **Entity not found**.
+
+The updated installer registers missing native `input_number` entities during setup, preserves existing helpers, and verifies that both exact entity IDs resolve. It also attempts to restore an item already present in helper storage but missing from the runtime. Setup fails with a clear log error if either helper is still unavailable rather than creating a nonfunctional PID automation.
+
 ## 🛟 Troubleshooting
 
 | Problem | What to check |
@@ -149,7 +155,7 @@ Merge this into an existing `logbook:` section if you already have one. Check co
 | Card says **automation not found** | Confirm the automation exists and its real entity ID matches the card configuration |
 | Integration shows a red error | Open **Settings → System → Logs** and check entries mentioning `sungrow_grid_pid` |
 | Card still looks old after HACS update | Restart Home Assistant and hard-refresh the browser (Ctrl+Shift+R) |
-| No helpers visible | Restart HA after first-time helper creation |
+| No helpers visible | Check integration setup logs for a failed native-helper registration; setup must verify both input_number entities |
 | Automation not loaded | Check that `configuration.yaml` includes `automation: !include automations.yaml` and review automation errors |
 | PID seems to work in the wrong direction | Verify that positive `sensor.export_power` means exporting power |
 
