@@ -15,10 +15,13 @@ _LOGGER = logging.getLogger(__name__)
 CARD_PATH = Path(__file__).parent / "frontend" / "sungrow-grid-pid-card.js"
 CARD_STATIC_URL = f"/sungrow_grid_pid/{VERSION}/sungrow-grid-pid-card.js"
 CARD_URL = f"{CARD_STATIC_URL}?v={VERSION}"
+MORE_INFO_PATH = Path(__file__).parent / "frontend" / "vendor" / "custom-more-info.js"
+MORE_INFO_STATIC_URL = f"/sungrow_grid_pid/{VERSION}/custom-more-info.js"
+MORE_INFO_URL = f"{MORE_INFO_STATIC_URL}?v={VERSION}"
 
 
 async def _try_register_resource(hass: HomeAssistant) -> bool:
-    """Register/update the JS module in Lovelace storage resources."""
+    """Register our card and vendored more-info JS, respecting a HACS copy."""
     lovelace = hass.data.get(LOVELACE_DATA)
     if lovelace is None:
         return False
@@ -28,23 +31,51 @@ async def _try_register_resource(hass: HomeAssistant) -> bool:
     if not hasattr(resources, "async_create_item"):
         return False
 
-    for item in resources.async_items():
-        url = str(item.get("url", ""))
-        if url.split("?")[0].startswith("/sungrow_grid_pid/") and url.split("?")[0].endswith("/sungrow-grid-pid-card.js") or url.split("?")[0] == "/sungrow_grid_pid/sungrow-grid-pid-card.js":
-            if url != CARD_URL and hasattr(resources, "async_update_item"):
-                await resources.async_update_item(
-                    item["id"], {"res_type": "module", "url": CARD_URL}
-                )
-            return True
+    items = list(resources.async_items())
+    card_resource = next(
+        (item for item in items
+         if str(item.get("url", "")).split("?")[0].endswith("/sungrow-grid-pid-card.js")),
+        None,
+    )
+    if card_resource is None:
+        await resources.async_create_item({"res_type": "module", "url": CARD_URL})
+    elif card_resource.get("url") != CARD_URL:
+        await resources.async_update_item(
+            card_resource["id"], {"res_type": "module", "url": CARD_URL}
+        )
 
-    await resources.async_create_item({"res_type": "module", "url": CARD_URL})
+    # If Custom More Info has already been installed by the user through
+    # HACS, don't load our bundled copy in parallel.
+    items = list(resources.async_items())
+    upstream_exists = any(
+        "custom-more-info" in str(item.get("url", "")).lower()
+        and not str(item.get("url", "")).split("?")[0].startswith("/sungrow_grid_pid/")
+        for item in items
+    )
+    own_resource = next(
+        (item for item in items if str(item.get("url", "")).split("?")[0].startswith("/sungrow_grid_pid/")
+         and str(item.get("url", "")).split("?")[0].endswith("/custom-more-info.js")),
+        None,
+    )
+    if upstream_exists:
+        if own_resource is not None:
+            await resources.async_delete_item(own_resource["id"])
+        _LOGGER.info("Custom More Info already installed; using the existing HACS resource")
+    elif own_resource is None:
+        await resources.async_create_item({"res_type": "module", "url": MORE_INFO_URL})
+        _LOGGER.info("Automatically registered bundled Custom More Info resource")
+    elif own_resource.get("url") != MORE_INFO_URL:
+        await resources.async_update_item(
+            own_resource["id"], {"res_type": "module", "url": MORE_INFO_URL}
+        )
     return True
 
 
 async def async_register_frontend(hass: HomeAssistant) -> None:
     """Serve the card and reliably register it after Lovelace is ready."""
     await hass.http.async_register_static_paths(
-        [StaticPathConfig(CARD_STATIC_URL, str(CARD_PATH), False)]
+        [StaticPathConfig(CARD_STATIC_URL, str(CARD_PATH), False),
+         StaticPathConfig(MORE_INFO_STATIC_URL, str(MORE_INFO_PATH), False)]
     )
 
     attempts = 0
@@ -66,5 +97,7 @@ async def async_register_frontend(hass: HomeAssistant) -> None:
         else:
             _LOGGER.warning("Lovelace storage resources unavailable; using frontend fallback")
             add_extra_js_url(hass, CARD_URL)
+            # Do not use a fallback for the optional plugin: duplicate loading
+            # is worse than requiring the Lovelace resource registry.
 
     await _register()
