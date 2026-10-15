@@ -53,7 +53,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.exception("Cannot install Sungrow Grid PID automation")
         raise
 
-    _LOGGER.info("Sungrow Grid PID automation: %s; helper restart required: %s", result, restart_needed)
+    _LOGGER.info("Sungrow Grid PID automation: %s; restart required: %s", result, restart_needed)
+    await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
 
     async def activate_selected_scene(automation_entity: str) -> None:
         scene = entry.options.get("scene_entity", entry.data.get("scene_entity", ""))
@@ -99,6 +100,5 @@ async def _async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    # Automation and helpers are first-class user-editable items. Do not delete
-    # user-owned YAML or storage records implicitly on integration removal.
-    return True
+    # Preserve normal user-editable automation/helpers; release the snapshot sensor.
+    return await hass.config_entries.async_unload_platforms(entry, ["sensor"])
