@@ -1,31 +1,13 @@
-## Standard Home Assistant more-info without Activity (optional)
+## Standard Home Assistant more-info without Activity (automatic)
 
-The Sungrow Grid PID dashboard automatically sets `custom_more_info.hide_logbook.by_entity_id` for the configured charging number (usually `number.battery_max_charge_power`). This retains the native Home Assistant **history chart** while hiding the **Activity / Logbook** section when the third-party **Custom More Info** dashboard plugin is installed and loaded.
+Starting with **v3.0.23**, the integration bundles the third-party **Custom More Info** JavaScript frontend by [Mariusthvdb](https://github.com/Mariusthvdb/custom-more-info) (GPL-3.0 licensed) and registers it as a Home Assistant Lovelace resource automatically. You **do not need to install it separately in HACS**.
 
-**One-time prerequisite:** install **Custom More Info** by Mariusthvdb through HACS (Dashboard/Plugin). [Open it in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=Mariusthvdb&repository=custom-more-info&category=plugin). The Sungrow integration **does not and cannot silently install another HACS repository** or download third-party scripts. If the plugin is absent, the extra dashboard key is inert; your PID remains functional.
+The Sungrow Grid PID dashboard automatically configures `custom_more_info.hide_logbook.by_entity_id` for the charging control selected in integration settings (normally `number.battery_max_charge_power`). The standard Home Assistant more-info dialog retains **History** while hiding the **Logbook / Activity** section.
 
-The automatic setting is applied only to the dedicated **Sungrow Grid PID** dashboard, not to all user dashboards. Other dashboards require their own root-level `custom_more_info` configuration. Updating this dashboard preserves existing views and cards. Frontend cache refresh may be necessary after HACS installs its JavaScript resource.
+When Custom More Info is already present as a separately installed HACS resource, Sungrow Grid PID reuses it instead of loading a second copy. The integration does not modify or install packages into HACS itself. This option only affects the dedicated **Sungrow Grid PID** dashboard and does not disable Recorder or the history graph. A browser refresh may be needed after updating. Third-party frontend compatibility depends on the Home Assistant version.
 
-<div align="center">
+Vendored upstream file: `custom_components/sungrow_grid_pid/frontend/vendor/custom-more-info.js`. Upstream author and license: [Mariusthvdb/custom-more-info](https://github.com/Mariusthvdb/custom-more-info), GPL-3.0.
 
-# ☀️ Sungrow Grid PID
-
-### Smart grid export control for Home Assistant
-
-**Use excess solar energy to charge your battery while regulating power exported to the grid.**
-
-![Sungrow Grid PID — illustrated system overview](docs/images/sungrow_grid_pid_energy_infographic.png)
-
-[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Custom%20Integration-18BCF2?logo=homeassistant&logoColor=white)](https://www.home-assistant.io/)
-[![HACS](https://img.shields.io/badge/HACS-Compatible-41BDF5)](https://hacs.xyz/)
-[![Latest release](https://img.shields.io/github/v/release/EvgenyKrinets/sungrow-grid-pid?label=Release)](https://github.com/EvgenyKrinets/sungrow-grid-pid/releases)
-[![GitHub license](https://img.shields.io/github/license/EvgenyKrinets/sungrow-grid-pid)](LICENSE)
-
-[**Installation**](#-installation) · [**How it works**](#-how-it-works) · [**Configuration**](#-configuration) · [**Troubleshooting**](#-troubleshooting)
-
-</div>
-
----
 
 ## ⚡ What is Sungrow Grid PID?
 
