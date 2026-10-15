@@ -111,3 +111,73 @@ def ensure_logbook_exclusion(config_file: str) -> str:
     shutil.copy2(path, path.with_name(path.name + ".sungrow-grid-pid.bak"))
     write_utf8_file_atomic(str(path), updated)
     return result
+
+
+def ensure_recorder_exclusion(config_file: str, entity: str) -> str:
+    """Exclude only the noisy raw number from Recorder, preserving other settings.
+
+    The derived 10-second sensor remains recorded. Complex YAML is left alone
+    to prevent damage to user configuration.
+    """
+    path = Path(config_file)
+    if not path.exists():
+        return "missing_configuration"
+    original = path.read_text(encoding="utf-8")
+    lines = original.splitlines(keepends=True)
+    sections = _sections(lines)
+    recorder = sections.get("recorder", [])
+    if len(recorder) > 1:
+        return "duplicate_recorder"
+    if recorder:
+        start, end = recorder[0]
+        if not _simple_section(lines, (start, end)):
+            return "complex_recorder"
+        block = lines[start:end]
+        if any(re.match(r"^  include\s*:", line) for line in block):
+            return "recorder_has_include"
+        excludes = [i for i, line in enumerate(block)
+                    if re.match(r"^  exclude\s*:\s*(?:#.*)?$", line)]
+        if len(excludes) > 1:
+            return "complex_exclude"
+        if not excludes:
+            lines[start + 1:start + 1] = [
+                "  exclude:\n", "    entities:\n", f"      - {entity}\n"
+            ]
+        else:
+            exclusion_abs = start + excludes[0]
+            tail = lines[exclusion_abs + 1:end]
+            indices = [i for i, line in enumerate(tail)
+                       if re.match(r"^    entities\s*:\s*(?:#.*)?$", line)]
+            if len(indices) > 1 or any(
+                re.match(r"^    entities\s*:", line) for line in tail
+            ) and not indices:
+                return "complex_entities"
+            if not indices:
+                lines[exclusion_abs + 1:exclusion_abs + 1] = [
+                    "    entities:\n", f"      - {entity}\n"
+                ]
+            else:
+                idx = exclusion_abs + 1 + indices[0]
+                existing = set()
+                for line in lines[idx + 1:end]:
+                    if line.strip() and not line.startswith("      ") and not line.lstrip().startswith("#"):
+                        break
+                    match = re.match(r"^      -\s+([^#\n]+)", line)
+                    if match:
+                        existing.add(match.group(1).strip().strip("'\\\""))
+                    elif line.strip() and not line.lstrip().startswith("#"):
+                        return "complex_entities"
+                if entity in existing:
+                    return "already_configured"
+                lines.insert(idx + 1, f"      - {entity}\n")
+    else:
+        lines.extend([
+            "\n", "recorder:\n", "  exclude:\n", "    entities:\n",
+            f"      - {entity}\n",
+        ])
+    updated = "".join(lines)
+    if updated == original:
+        return "already_configured"
+    shutil.copy2(path, path.with_name(path.name + ".sungrow-grid-pid.bak"))
+    write_utf8_file_atomic(str(path), updated)
+    return "updated_restart_required"
