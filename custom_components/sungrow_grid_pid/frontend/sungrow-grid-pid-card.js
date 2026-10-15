@@ -154,7 +154,7 @@ class SungrowGridPidCard extends HTMLElement {
       }finally{btn.disabled=false;}
     };
     this.shadowRoot.getElementById("exportStat").onclick=()=>this._more(e.exportPower);
-    this.shadowRoot.getElementById("chargeStat").onclick=()=>this._more(e.charge);
+    this.shadowRoot.getElementById("chargeStat").onclick=()=>this._more(this._hass.states["sensor.sungrow_pid_charge_history"] ? "sensor.sungrow_pid_charge_history" : e.charge);
   }
 }
 
