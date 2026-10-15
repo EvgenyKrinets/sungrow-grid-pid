@@ -1,6 +1,6 @@
-## Optimized charge history (v3.0.25)
+## Optimized charge history (v3.0.26)
 
-The PID control loop **still runs every second** and sends charging-limit commands exactly as before. A new native Home Assistant sensor, `sensor.sungrow_pid_charge_history`, samples the configured battery charging-number entity **once every 10 seconds** and keeps its own Recorder history.
+As of **v3.0.26**, the 10-second history timer runs its state updates on Home Assistant's event loop (fixing the non-thread-safe `async_write_ha_state` error in v3.0.25). The PID control loop **still runs every second** and sends charging-limit commands exactly as before. A new native Home Assistant sensor, `sensor.sungrow_pid_charge_history`, samples the configured battery charging-number entity **once every 10 seconds** and keeps its own Recorder history.
 
 The PID card still displays the actual `number.battery_max_charge_power` value live; clicking it now opens the standard Home Assistant **more-info window of the sampled history sensor**. The dashboard's bundled Custom More Info continues to hide Logbook activity while retaining the native graph.
 
