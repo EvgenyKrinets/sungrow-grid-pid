@@ -1,3 +1,11 @@
+## Standard Home Assistant more-info without Activity (optional)
+
+The Sungrow Grid PID dashboard automatically sets `custom_more_info.hide_logbook.by_entity_id` for the configured charging number (usually `number.battery_max_charge_power`). This retains the native Home Assistant **history chart** while hiding the **Activity / Logbook** section when the third-party **Custom More Info** dashboard plugin is installed and loaded.
+
+**One-time prerequisite:** install **Custom More Info** by Mariusthvdb through HACS (Dashboard/Plugin). [Open it in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=Mariusthvdb&repository=custom-more-info&category=plugin). The Sungrow integration **does not and cannot silently install another HACS repository** or download third-party scripts. If the plugin is absent, the extra dashboard key is inert; your PID remains functional.
+
+The automatic setting is applied only to the dedicated **Sungrow Grid PID** dashboard, not to all user dashboards. Other dashboards require their own root-level `custom_more_info` configuration. Updating this dashboard preserves existing views and cards. Frontend cache refresh may be necessary after HACS installs its JavaScript resource.
+
 <div align="center">
 
 # ☀️ Sungrow Grid PID
