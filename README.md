@@ -1,6 +1,6 @@
 ## Standard Home Assistant more-info without Activity (automatic)
 
-Starting with **v3.0.23**, the integration bundles the third-party **Custom More Info** JavaScript frontend by [Mariusthvdb](https://github.com/Mariusthvdb/custom-more-info) (GPL-3.0 licensed) and registers it as a Home Assistant Lovelace resource automatically. You **do not need to install it separately in HACS**.
+Starting with **v3.0.24**, the integration bundles the third-party **Custom More Info** JavaScript frontend by [Mariusthvdb](https://github.com/Mariusthvdb/custom-more-info) (GPL-3.0 licensed) and registers it as a Home Assistant Lovelace resource automatically. You **do not need to install it separately in HACS**.
 
 The Sungrow Grid PID dashboard automatically configures `custom_more_info.hide_logbook.by_entity_id` for the charging control selected in integration settings (normally `number.battery_max_charge_power`). The standard Home Assistant more-info dialog retains **History** while hiding the **Logbook / Activity** section.
 
