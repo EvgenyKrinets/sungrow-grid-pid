@@ -1,3 +1,13 @@
+## Optimized charge history (v3.0.25)
+
+The PID control loop **still runs every second** and sends charging-limit commands exactly as before. A new native Home Assistant sensor, `sensor.sungrow_pid_charge_history`, samples the configured battery charging-number entity **once every 10 seconds** and keeps its own Recorder history.
+
+The PID card still displays the actual `number.battery_max_charge_power` value live; clicking it now opens the standard Home Assistant **more-info window of the sampled history sensor**. The dashboard's bundled Custom More Info continues to hide Logbook activity while retaining the native graph.
+
+The installer attempts to add a single `recorder.exclude.entities` entry for the high-frequency original number in `configuration.yaml`, leaving other Recorder settings intact. **Restart Home Assistant** after updating to apply the exclusion. Complex `recorder` configuration, includes, or inclusion allowlists are not overwritten: if skipped, an explanatory warning appears in the integration logs, and you can add the exclusion manually.
+
+For clarity, `recorder.exclude` removes **new history of the original number**, not merely its Activity panel. You can still see its current value in the PID card and its historical graph via the **10-second snapshot sensor**. Previously saved Recorder entries are not purged by this migration; older data may remain until your ordinary Recorder retention policy removes them. If another dashboard opens `number.battery_max_charge_power` directly, it will not automatically be redirected to the new sensor.
+
 ## Standard Home Assistant more-info without Activity (automatic)
 
 Starting with **v3.0.24**, the integration bundles the third-party **Custom More Info** JavaScript frontend by [Mariusthvdb](https://github.com/Mariusthvdb/custom-more-info) (GPL-3.0 licensed) and registers it as a Home Assistant Lovelace resource automatically. You **do not need to install it separately in HACS**.
