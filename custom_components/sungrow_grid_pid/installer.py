@@ -14,7 +14,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util.file import write_utf8_file_atomic
 from homeassistant.util.yaml import dump, load_yaml
 
-from .logbook_config import ensure_logbook_exclusion
+from .logbook_config import ensure_logbook_exclusion, ensure_recorder_exclusion
 
 _LOGGER = logging.getLogger(__name__)
 AUTOMATION_ID = "sungrow_grid_pid_simple_controller"
@@ -281,6 +281,22 @@ async def install(hass, entry):
         _LOGGER.warning(
             "Sungrow Grid PID did not modify Logbook config (%s). "
             "Review configuration.yaml manually if needed.", logbook_result
+        )
+    charge_entity = entry.options.get("charge_entity", entry.data.get("charge_entity", "number.battery_max_charge_power"))
+    recorder_result = await hass.async_add_executor_job(
+        ensure_recorder_exclusion, hass.config.path("configuration.yaml"), charge_entity
+    )
+    if recorder_result == "updated_restart_required":
+        _LOGGER.warning(
+            "Excluded noisy %s from Recorder. Restart Home Assistant to apply; "
+            "10-second PID Charge History sensor will retain its own graph.",
+            charge_entity,
+        )
+    elif recorder_result != "already_configured":
+        _LOGGER.warning(
+            "Unable to safely configure Recorder exclusion for %s (%s). "
+            "Please exclude the raw number manually to prevent continued history writes.",
+            charge_entity, recorder_result,
         )
     created_helpers = await install_helpers(hass)
     automation = make_automation(
