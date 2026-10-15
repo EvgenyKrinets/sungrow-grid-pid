@@ -199,37 +199,65 @@ async def install_helpers(hass):
     return created
 
 
-async def install_dashboard(hass):
-    """Create a dedicated dashboard containing the PID controller card."""
+async def install_dashboard(hass, charge_entity="number.battery_max_charge_power"):
+    """Create or update the owned dashboard with an optional more-info filter.
+
+    The custom_more_info option becomes active only when the independently
+    installed Custom More Info HACS frontend resource is loaded.
+    """
     from homeassistant.components import frontend
     from homeassistant.components.lovelace import dashboard
     from homeassistant.components.lovelace.const import LOVELACE_DATA
 
     data = hass.data.get(LOVELACE_DATA)
-    if data is None or "sungrow-grid-pid" in data.dashboards:
+    if data is None:
         return
 
     dashboards = dashboard.DashboardsCollection(hass)
     await dashboards.async_load()
-    if any(item.get("url_path") == "sungrow-grid-pid" for item in dashboards.async_items()):
-        return
+    item = next((x for x in dashboards.async_items()
+                 if x.get("url_path") == "sungrow-grid-pid"), None)
 
-    item = await dashboards.async_create_item({
-        "url_path": "sungrow-grid-pid",
-        "title": "Sungrow Grid PID",
-        "icon": "mdi:solar-power",
-        "show_in_sidebar": True,
-        "require_admin": False,
-    })
-    page = dashboard.LovelaceStorage(hass, item)
-    await page.async_save({
-        "title": "Sungrow Grid PID",
-        "views": [{
-            "title": "PID",
-            "path": "pid",
-            "cards": [{"type": "custom:sungrow-grid-pid-card"}],
-        }],
-    })
+    if item is None:
+        item = await dashboards.async_create_item({
+            "url_path": "sungrow-grid-pid",
+            "title": "Sungrow Grid PID",
+            "icon": "mdi:solar-power",
+            "show_in_sidebar": True,
+            "require_admin": False,
+        })
+        page = dashboard.LovelaceStorage(hass, item)
+        config = {
+            "title": "Sungrow Grid PID",
+            "views": [{
+                "title": "PID",
+                "path": "pid",
+                "cards": [{"type": "custom:sungrow-grid-pid-card"}],
+            }],
+        }
+    else:
+        page = data.dashboards.get("sungrow-grid-pid")
+        if page is None:
+            page = dashboard.LovelaceStorage(hass, item)
+        try:
+            config = dict(await page.async_load(False))
+        except Exception:
+            _LOGGER.exception("Cannot read existing PID dashboard; preserving its contents")
+            return
+
+    info = dict(config.get("custom_more_info") or {})
+    hide_logbook = dict(info.get("hide_logbook") or {})
+    entity_ids = list(hide_logbook.get("by_entity_id") or [])
+    if charge_entity not in entity_ids:
+        entity_ids.append(charge_entity)
+    hide_logbook["by_entity_id"] = entity_ids
+    info["hide_logbook"] = hide_logbook
+    updated_config = dict(config)
+    updated_config["custom_more_info"] = info
+    if updated_config != config:
+        await page.async_save(updated_config)
+        _LOGGER.info("Configured PID dashboard to hide Logbook for %s when Custom More Info is installed", charge_entity)
+
     data.dashboards["sungrow-grid-pid"] = page
     if not frontend.async_panel_exists(hass, "sungrow-grid-pid"):
         frontend.async_register_built_in_panel(
@@ -269,7 +297,7 @@ async def install(hass, entry):
     else:
         _LOGGER.info("Available battery/PID automations: %s", candidates)
     try:
-        await install_dashboard(hass)
+        await install_dashboard(hass, entry.options.get("charge_entity", entry.data.get("charge_entity", "number.battery_max_charge_power")))
     except Exception:
         _LOGGER.exception("Dashboard creation failed; helpers and automation remain installed")
     return result, created_helpers
