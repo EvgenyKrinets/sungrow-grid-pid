@@ -1,5 +1,5 @@
 DOMAIN = "sungrow_grid_pid"
-VERSION = "3.0.23"
+VERSION = "3.0.24"
 
 DEFAULT_EXPORT_ENTITY = "sensor.export_power"
 DEFAULT_CHARGE_ENTITY = "number.battery_max_charge_power"
