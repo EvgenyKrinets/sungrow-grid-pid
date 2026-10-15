@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.restore_state import RestoreEntity
 
@@ -40,6 +41,7 @@ class ChargeHistorySensor(SensorEntity, RestoreEntity):
             async_track_time_interval(self.hass, self._sample, timedelta(seconds=10))
         )
 
+    @callback
     def _sample(self, _now) -> None:
         source = self._hass.states.get(self._source)
         if source is None or source.state in ("unknown", "unavailable"):
