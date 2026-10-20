@@ -192,9 +192,28 @@ class EnergyManager:
         target = self.params["export_target"]
         band = self.params["dead_band"]
         direction = 1 if export > target + band else -1 if export < target - band else 0
-        if direction != self.direction:
+        # Do not run or reset a pointless delay when charging is already at
+        # the boundary in the requested direction. Re-arm the full delay only
+        # after the value leaves that boundary (or the direction reverses).
+        charge_state = self.hass.states.get(charge_entity)
+        charge_min = float(charge_state.attributes.get("min", 0))
+        charge_max = float(charge_state.attributes.get("max", 25000))
+        charge_step = float(charge_state.attributes.get("step", 1)) or 1
+        at_limit = (
+            (direction > 0 and charge >= charge_max - charge_step / 2)
+            or (direction < 0 and charge <= charge_min + charge_step / 2)
+        )
+        if at_limit:
+            self.direction, self.started = 0, None
+            self.status = (
+                "Grid Target: charge at maximum"
+                if direction > 0 else "Grid Target: charge at minimum"
+            )
+        elif direction != self.direction:
             self.direction, self.started = direction, now if direction else None
-        if direction == 0:
+        if at_limit:
+            pass
+        elif direction == 0:
             self.status = "Grid Target: within dead band"
         elif self.started is not None:
             elapsed = (now - self.started).total_seconds()
