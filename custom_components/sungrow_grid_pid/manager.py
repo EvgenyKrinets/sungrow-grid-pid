@@ -44,6 +44,8 @@ class EnergyManager:
         self.direction = 0
         self.started = None
         self.last_run_date = None
+        self.last_run_time = None
+        self.last_attempt_minute = None
         self.forced = False
         self.status = "Stopped"
         self.morning_status = "Not run yet"
@@ -52,7 +54,7 @@ class EnergyManager:
         self._store = Store(hass, 1, "sungrow_energy_manager_" + entry.entry_id)
 
     async def persist(self):
-        await self._store.async_save({"forced": self.forced, "last_run": self.last_run_date.isoformat() if self.last_run_date else None})
+        await self._store.async_save({"forced": self.forced, "last_run": self.last_run_date.isoformat() if self.last_run_date else None, "last_run_time": self.last_run_time})
 
     def setting(self, name):
         return self.entry.options.get(name, self.entry.data.get(name, ""))
@@ -112,6 +114,8 @@ class EnergyManager:
             await self.hass.services.async_call("number", "set_value", {"entity_id": power, "value": value}, blocking=True)
             await self.hass.services.async_call("scene", "turn_on", {"entity_id": mode}, blocking=True)
             self.forced = True
+            self.last_run_date = datetime.now(__import__("zoneinfo").ZoneInfo(self.hass.config.time_zone)).date()
+            self.last_run_time = self.start_time.strftime("%H:%M")
             await self.persist()
             self.status = "Battery Forced Discharge"
             self.morning_status = f"Active: forced discharge at {value:g} W limit"
@@ -163,9 +167,15 @@ class EnergyManager:
             self.notify()
             return
 
-        if self.morning_enabled and self.last_run_date != now.date() and now.hour == self.start_time.hour and now.minute == self.start_time.minute:
-            self.last_run_date = now.date()
-            await self.persist()
+        scheduled_minute = self.start_time.strftime("%H:%M")
+        scheduled_now = now.hour == self.start_time.hour and now.minute == self.start_time.minute
+        attempt_key = (now.date(), scheduled_minute)
+        already_completed = self.last_run_date == now.date() and self.last_run_time == scheduled_minute
+        if self.morning_enabled and scheduled_now and not already_completed and self.last_attempt_minute != attempt_key:
+            # Never consume the whole day's scheduled run on a failed attempt.
+            # Attempt at most once during each scheduled minute, avoiding
+            # hammering the inverter with repeated service calls every second.
+            self.last_attempt_minute = attempt_key
             await self.begin_forced()
             if self.forced:
                 self.notify()
@@ -219,6 +229,7 @@ async def setup_manager(hass, entry):
             manager.last_run_date = date.fromisoformat(prior["last_run"])
         except (ValueError, TypeError):
             pass
+    manager.last_run_time = prior.get("last_run_time")
     if prior.get("forced"):
         manager.forced = True
         await manager.finish_forced()
