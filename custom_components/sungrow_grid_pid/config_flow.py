@@ -124,7 +124,7 @@ class SungrowGridPidConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is None:
             return self.async_show_form(step_id="remove", data_schema=vol.Schema({
                 vol.Required("confirm", default=False): bool
-            }), self.hass)
+            }))
         if not user_input.get("confirm"):
             return self.async_abort(reason="removal_cancelled")
         for entry in self._async_current_entries():
@@ -145,4 +145,4 @@ class SungrowGridPidOptionsFlow(config_entries.OptionsFlow):
             return self.async_show_form(step_id="init", data_schema=schema(user_input, self.hass), errors=errors)
         return self.async_show_form(step_id="init", data_schema=schema({
             **self.config_entry.data, **self.config_entry.options
-        }))
+        }, self.hass))
