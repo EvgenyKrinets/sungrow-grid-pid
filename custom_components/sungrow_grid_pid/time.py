@@ -28,6 +28,9 @@ class MorningTime(TimeEntity, RestoreEntity):
     async def async_set_value(self, value):
         self._attr_native_value = value
         self.manager.start_time = value
+        self.manager.last_attempt_minute = None
+        self.manager.morning_status = "Scheduled for " + value.strftime("%H:%M")
+        self.manager.notify()
         self.async_write_ha_state()
 
 async def async_setup_entry(hass, entry, async_add_entities):
