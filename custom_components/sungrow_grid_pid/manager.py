@@ -46,6 +46,7 @@ class EnergyManager:
         self.last_run_date = None
         self.forced = False
         self.status = "Stopped"
+        self.morning_status = "Not run yet"
         self.listeners = []
         self._tick_lock = asyncio.Lock()
         self._store = Store(hass, 1, "sungrow_energy_manager_" + entry.entry_id)
@@ -89,15 +90,18 @@ class EnergyManager:
         soc = numeric(self.hass, self.setting("soc_entity"))
         reserved = numeric(self.hass, self.setting("reserve_soc_entity"))
         if soc is None or reserved is None:
-            self.status = "Morning discharge: SOC unavailable"
+            self.morning_status = "Cannot start: SOC or backup reserve unavailable"
+            self.notify()
             return
         if soc <= self.params["empty_soc"] or soc <= reserved:
-            self.status = "Morning discharge skipped (SOC threshold)"
+            self.morning_status = f"Skipped: SOC {soc:g}%, start threshold {self.params['empty_soc']:g}%, reserve {reserved:g}%"
+            self.notify()
             return
         mode = self.setting("forced_scene_entity")
         power = self.setting("forced_power_entity")
         if not mode or not power or not self.hass.states.get(mode) or not self.hass.states.get(power):
-            self.status = "Morning discharge not configured"
+            self.morning_status = "Not configured: choose Forced Discharge scene and power number in integration options"
+            self.notify()
             return
         self.direction, self.started = 0, None
         try:
@@ -110,9 +114,13 @@ class EnergyManager:
             self.forced = True
             await self.persist()
             self.status = "Battery Forced Discharge"
+            self.morning_status = f"Active: forced discharge at {value:g} W limit"
+            self.notify()
         except Exception:
             _LOGGER.exception("Morning forced discharge failed")
             self.status = "Morning discharge command failed"
+            self.morning_status = "ERROR: service call failed; inspect HA logs"
+            self.notify()
 
     async def finish_forced(self):
         scene = self.setting("scene_entity")
@@ -126,9 +134,24 @@ class EnergyManager:
             await self.persist()
             self.direction, self.started = 0, None
             self.status = "Grid Target active" if self.enabled else "Stopped"
+            self.morning_status = "Finished: Self-Consumption restored"
+            self.notify()
         except Exception:
             _LOGGER.exception("Cannot exit forced discharge")
             self.status = "ERROR: cannot exit forced discharge"
+
+    async def manual_morning_test(self):
+        """Immediately test scheduled discharge with all safety checks."""
+        if not self.enabled:
+            self.morning_status = "Start Grid Target before testing"
+            self.notify()
+            return
+        if self.forced:
+            self.morning_status = "Already in Forced Discharge"
+            self.notify()
+            return
+        async with self._tick_lock:
+            await self.begin_forced()
 
     async def tick(self, _now):
         if self._tick_lock.locked():
