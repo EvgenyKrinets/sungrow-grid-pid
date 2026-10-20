@@ -58,7 +58,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     manager, unsub = await setup_manager(hass, entry)
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = manager
     entry.async_on_unload(unsub)
-    await hass.config_entries.async_forward_entry_setups(entry, ["sensor", "number", "switch", "time", "button"])
+    await hass.config_entries.async_forward_entry_setups(entry, ["sensor", "number", "switch", "time"])
 
     entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
     return True
