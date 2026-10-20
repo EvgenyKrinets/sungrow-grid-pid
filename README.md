@@ -1,6 +1,6 @@
 <div align="center">
 
-![Sungrow Energy Manager — product showcase](assets/sungrow-energy-manager-showcase.jpg)
+![Sungrow Energy Manager — product showcase](assets/sem-banner.svg)
 
 # Sungrow Energy Manager
 
