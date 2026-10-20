@@ -221,7 +221,7 @@ async def install_dashboard(hass, charge_entity="number.battery_max_charge_power
     if item is None:
         item = await dashboards.async_create_item({
             "url_path": "sungrow-grid-pid",
-            "title": "Sungrow Grid PID",
+            "title": "Sungrow Energy Manager",
             "icon": "mdi:solar-power",
             "show_in_sidebar": True,
             "require_admin": False,
@@ -230,7 +230,7 @@ async def install_dashboard(hass, charge_entity="number.battery_max_charge_power
         config = {
             "title": "Sungrow Grid PID",
             "views": [{
-                "title": "PID",
+                "title": "Energy",
                 "path": "pid",
                 "cards": [{"type": "custom:sungrow-grid-pid-card"}],
             }],
@@ -263,7 +263,7 @@ async def install_dashboard(hass, charge_entity="number.battery_max_charge_power
         frontend.async_register_built_in_panel(
             hass, "lovelace", frontend_url_path="sungrow-grid-pid",
             require_admin=False, show_in_sidebar=True,
-            sidebar_title="Sungrow Grid PID", sidebar_icon="mdi:solar-power",
+            sidebar_title="Sungrow Energy Manager", sidebar_icon="mdi:solar-power",
             config={"mode": "storage"},
         )
 
@@ -299,19 +299,16 @@ async def install(hass, entry):
             charge_entity, recorder_result,
         )
     created_helpers = await install_helpers(hass)
-    automation = make_automation(
-        entry.options.get("export_entity", entry.data.get("export_entity", "sensor.export_power")),
-        entry.options.get("charge_entity", entry.data.get("charge_entity", "number.battery_max_charge_power")),
-        entry.options.get("scene_entity", entry.data.get("scene_entity", "scene.self_consumption_mode_max_battery_discharge")),
-    )
-    result = await hass.async_add_executor_job(write_automation, hass.config.path("automations.yaml"), automation)
-    if result in ("created", "existing_manual", "existing", "updated"):
-        await hass.services.async_call("automation", "reload", {}, blocking=True)
-    candidates = [(state.entity_id, state.attributes.get("friendly_name")) for state in hass.states.async_all("automation") if any(term in state.entity_id.lower() for term in ("grid", "pid", "battery"))]
-    if not candidates:
-        _LOGGER.error("Sungrow Grid PID: automation not found after reload. Installer status=%s. Confirm configuration.yaml includes automation: !include automations.yaml and check automation errors in Home Assistant logs.", result)
-    else:
-        _LOGGER.info("Available battery/PID automations: %s", candidates)
+    # Disable legacy controller; do not create or update PID YAML on new versions.
+    disabled = []
+    for old in hass.states.async_all("automation"):
+        if old.entity_id == "automation.simple_grid_battery_controller" or str(old.attributes.get("friendly_name", "")).lower() == "simple grid battery controller":
+            if old.state == "on":
+                await hass.services.async_call("automation", "turn_off", {"entity_id": old.entity_id}, blocking=True)
+                disabled.append(old.entity_id)
+    if disabled:
+        _LOGGER.warning("Disabled old PID automation to avoid conflicting battery commands: %s", disabled)
+    result = "legacy_pid_disabled" if disabled else "native_manager_ready"
     try:
         await install_dashboard(hass, entry.options.get("charge_entity", entry.data.get("charge_entity", "number.battery_max_charge_power")))
     except Exception:
