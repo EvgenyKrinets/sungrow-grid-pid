@@ -1,6 +1,6 @@
 name: Build brand and release
 # Generates HA 2026.3+ local branding and publishes semantic release.
-# Release target: dynamic manifest.json version; v4.0.6 aligns HACS branding and product showcase README
+# Release target: dynamic manifest.json version; stable release metadata (no beta label)
 # Visual dashboard release trigger
 # Publish version from manifest.json; never retag old releases
 
@@ -68,6 +68,15 @@ jobs:
             git tag "${TAG}" origin/main
             git push origin "${TAG}"
           fi
+          RELEASE_TITLE="Sungrow Energy Manager ${TAG}"
+          RELEASE_NOTES="Sungrow Energy Manager stable release. Grid Target export control, scheduled battery discharge, restored settings across Home Assistant restarts, and the updated product documentation. See README.md for setup and operation."
           if ! gh release view "${TAG}" >/dev/null 2>&1; then
-            gh release create "${TAG}" --title "Sungrow Energy Manager ${TAG} (beta)" --notes "First SEM beta: step-based Grid Target controller, symmetrical dead-band delay, native user parameters, optional morning forced discharge, safety restore and in-place upgrade from Sungrow Grid PID."
+            gh release create "${TAG}" --title "${RELEASE_TITLE}" --notes "${RELEASE_NOTES}"
+          else
+            # Correct older release metadata without changing its tag or integration version.
+            CURRENT_TITLE=$(gh release view "${TAG}" --json name -q .name)
+            CURRENT_NOTES=$(gh release view "${TAG}" --json body -q .body)
+            if [[ "${CURRENT_TITLE}" == *"(beta)"* ]] || [[ "${CURRENT_NOTES}" == "First SEM beta:"* ]]; then
+              gh release edit "${TAG}" --title "${RELEASE_TITLE}" --notes "${RELEASE_NOTES}"
+            fi
           fi
