@@ -8,6 +8,7 @@ from datetime import datetime, time, timedelta
 
 from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.storage import Store
 
 _LOGGER = logging.getLogger(__name__)
 OLD_AUTOMATION = "automation.simple_grid_battery_controller"
@@ -47,6 +48,10 @@ class EnergyManager:
         self.status = "Stopped"
         self.listeners = []
         self._tick_lock = asyncio.Lock()
+        self._store = Store(hass, 1, "sungrow_energy_manager_" + entry.entry_id)
+
+    async def persist(self):
+        await self._store.async_save({"forced": self.forced, "last_run": self.last_run_date.isoformat() if self.last_run_date else None})
 
     def setting(self, name):
         return self.entry.options.get(name, self.entry.data.get(name, ""))
@@ -103,6 +108,7 @@ class EnergyManager:
             await self.hass.services.async_call("number", "set_value", {"entity_id": power, "value": value}, blocking=True)
             await self.hass.services.async_call("scene", "turn_on", {"entity_id": mode}, blocking=True)
             self.forced = True
+            await self.persist()
             self.status = "Battery Forced Discharge"
         except Exception:
             _LOGGER.exception("Morning forced discharge failed")
@@ -117,6 +123,7 @@ class EnergyManager:
         try:
             await self.hass.services.async_call("scene", "turn_on", {"entity_id": scene}, blocking=True)
             self.forced = False
+            await self.persist()
             self.direction, self.started = 0, None
             self.status = "Grid Target active" if self.enabled else "Stopped"
         except Exception:
@@ -148,6 +155,7 @@ class EnergyManager:
 
         if self.morning_enabled and self.last_run_date != now.date() and now.hour == self.start_time.hour and now.minute == self.start_time.minute:
             self.last_run_date = now.date()
+            await self.persist()
             await self.begin_forced()
             if self.forced:
                 self.notify()
@@ -194,6 +202,16 @@ class EnergyManager:
 
 async def setup_manager(hass, entry):
     manager = EnergyManager(hass, entry)
+    prior = await manager._store.async_load() or {}
+    if prior.get("last_run"):
+        try:
+            from datetime import date
+            manager.last_run_date = date.fromisoformat(prior["last_run"])
+        except (ValueError, TypeError):
+            pass
+    if prior.get("forced"):
+        manager.forced = True
+        await manager.finish_forced()
     @callback
     def schedule_tick(now):
         hass.async_create_task(manager.tick(now))
