@@ -2,12 +2,25 @@
   "config": {
     "step": {
       "user": {
-        "title": "Sungrow Grid PID",
-        "description": "Confirm your Sungrow entity IDs. Defaults are prefilled. Installs a normal automation, two input_number helpers, and a PID dashboard.",
+        "title": "Sungrow Energy Manager settings",
+        "description": "Choose the Sungrow entities used for grid export control and optional morning discharge. Optional discharge fields must all be configured before that feature can run.",
         "data": {
-          "export_entity": "Grid export sensor",
-          "charge_entity": "Battery max charge power",
-          "scene_entity": "Scene on PID enable"
+          "export_entity": "Grid export power sensor",
+          "charge_entity": "Maximum battery charge power control",
+          "scene_entity": "Self-Consumption Mode scene (start and return)",
+          "soc_entity": "Battery state of charge sensor (SOC, %)",
+          "reserve_soc_entity": "Battery Reserved SoC for Backup entity (%)",
+          "forced_scene_entity": "Battery Forced Discharge scene",
+          "forced_power_entity": "Battery forced charge/discharge power control (W)"
+        },
+        "data_description": {
+          "export_entity": "Live power being exported to the grid, in watts. Grid Target uses this value to decide when to change the battery charging limit.",
+          "charge_entity": "Writable number entity that sets the battery charging power limit, in watts. Grid Target adjusts it in steps after the configured delay.",
+          "scene_entity": "Scene to activate when starting Grid Target and when morning forced discharge ends. Choose Self-Consumption Mode (max battery discharge).",
+          "soc_entity": "Current battery charge percentage. Morning discharge starts only when SOC is above the configured Empty SOC threshold and backup reserve.",
+          "reserve_soc_entity": "Actual Sungrow Battery Reserved SoC for Backup value. The controller stops forced discharge when the battery reaches this percentage.",
+          "forced_scene_entity": "Scene that puts the inverter into Battery Forced Discharge mode. Only used by the optional morning discharge schedule.",
+          "forced_power_entity": "Writable number entity for Battery forced charge discharge power. The controller sets this value before activating the forced discharge scene."
         }
       },
       "remove": {
@@ -33,12 +46,25 @@
   "options": {
     "step": {
       "init": {
-        "title": "Sungrow Grid PID settings",
-        "description": "Change export, charge, and scene entities",
+        "title": "Sungrow Energy Manager settings",
+        "description": "Choose the Sungrow entities used for grid export control and optional morning discharge. Optional discharge fields must all be configured before that feature can run.",
         "data": {
-          "export_entity": "Grid export sensor",
-          "charge_entity": "Battery max charge power",
-          "scene_entity": "Scene on PID enable"
+          "export_entity": "Grid export power sensor",
+          "charge_entity": "Maximum battery charge power control",
+          "scene_entity": "Self-Consumption Mode scene (start and return)",
+          "soc_entity": "Battery state of charge sensor (SOC, %)",
+          "reserve_soc_entity": "Battery Reserved SoC for Backup entity (%)",
+          "forced_scene_entity": "Battery Forced Discharge scene",
+          "forced_power_entity": "Battery forced charge/discharge power control (W)"
+        },
+        "data_description": {
+          "export_entity": "Live power being exported to the grid, in watts. Grid Target uses this value to decide when to change the battery charging limit.",
+          "charge_entity": "Writable number entity that sets the battery charging power limit, in watts. Grid Target adjusts it in steps after the configured delay.",
+          "scene_entity": "Scene to activate when starting Grid Target and when morning forced discharge ends. Choose Self-Consumption Mode (max battery discharge).",
+          "soc_entity": "Current battery charge percentage. Morning discharge starts only when SOC is above the configured Empty SOC threshold and backup reserve.",
+          "reserve_soc_entity": "Actual Sungrow Battery Reserved SoC for Backup value. The controller stops forced discharge when the battery reaches this percentage.",
+          "forced_scene_entity": "Scene that puts the inverter into Battery Forced Discharge mode. Only used by the optional morning discharge schedule.",
+          "forced_power_entity": "Writable number entity for Battery forced charge discharge power. The controller sets this value before activating the forced discharge scene."
         }
       }
     },
