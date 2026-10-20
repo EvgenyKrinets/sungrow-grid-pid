@@ -146,7 +146,7 @@ class EnergyManager:
             self.notify()
             return
 
-        if self.morning_enabled and self.last_run_date != now.date() and now.time() >= self.start_time:
+        if self.morning_enabled and self.last_run_date != now.date() and now.hour == self.start_time.hour and now.minute == self.start_time.minute:
             self.last_run_date = now.date()
             await self.begin_forced()
             if self.forced:
