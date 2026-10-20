@@ -1,6 +1,6 @@
 <div align="center">
 
-![Sungrow Energy Manager — product showcase](assets/sem-banner.svg)
+![Sungrow Energy Manager — product showcase](assets/Sungrow%20Energy%20Manager%20for%20Home%20Assistant%281%29.png)
 
 # Sungrow Energy Manager
 
