@@ -1,7 +1,7 @@
 {
   "domain": "sungrow_grid_pid",
   "name": "Sungrow Energy Manager",
-  "version": "4.0.3",
+  "version": "4.0.4",
   "documentation": "https://github.com/EvgenyKrinets/sungrow-grid-pid",
   "issue_tracker": "https://github.com/EvgenyKrinets/sungrow-grid-pid/issues",
   "codeowners": [
