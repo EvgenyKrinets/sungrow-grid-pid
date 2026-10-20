@@ -19,20 +19,55 @@ DEFAULTS = {
 }
 
 
-def schema(values):
-    """HA entity selectors show searchable entity pickers instead of free text."""
-    return vol.Schema({
+# Names shown in Sungrow dashboards differ across Modbus integrations.
+# Match an existing entity by exact friendly name, never invent an entity ID.
+FRIENDLY_DEFAULTS = {
+    "soc_entity": ("sensor", "Battery level"),
+    "reserve_soc_entity": (("number", "sensor"), "Battery Reserved SoC for Backup"),
+    "forced_scene_entity": ("scene", "Battery Forced Discharge"),
+    "forced_power_entity": ("number", "Battery forced charge discharge power"),
+}
+
+
+def _existing_suggestion(hass, key, values):
+    explicit = values.get(key)
+    if explicit:
+        return explicit  # Existing user choices always win.
+    allowed, label = FRIENDLY_DEFAULTS[key]
+    domains = (allowed,) if isinstance(allowed, str) else allowed
+    matches = [
+        state.entity_id for state in hass.states.async_all()
+        if state.entity_id.split(".", 1)[0] in domains
+        and str(state.attributes.get("friendly_name", "")).strip().casefold() == label.casefold()
+    ]
+    # An ambiguous name is not an appropriate automatic default.
+    return matches[0] if len(matches) == 1 else None
+
+
+def schema(values, hass):
+    """Build selectors with optional, verified suggestions from existing entities."""
+    fields = {
         vol.Required("export_entity", default=values.get("export_entity", DEFAULTS["export_entity"])):
             selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
         vol.Required("charge_entity", default=values.get("charge_entity", DEFAULTS["charge_entity"])):
             selector.EntitySelector(selector.EntitySelectorConfig(domain="number")),
         vol.Required("scene_entity", default=values.get("scene_entity", DEFAULTS["scene_entity"])):
             selector.EntitySelector(selector.EntitySelectorConfig(domain="scene")),
-        vol.Optional("soc_entity", description={"suggested_value": values.get("soc_entity", "")}): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
-        vol.Optional("reserve_soc_entity", description={"suggested_value": values.get("reserve_soc_entity", "")}): selector.EntitySelector(selector.EntitySelectorConfig(domain=["number", "sensor"])),
-        vol.Optional("forced_scene_entity", description={"suggested_value": values.get("forced_scene_entity", "")}): selector.EntitySelector(selector.EntitySelectorConfig(domain="scene")),
-        vol.Optional("forced_power_entity", description={"suggested_value": values.get("forced_power_entity", "")}): selector.EntitySelector(selector.EntitySelectorConfig(domain="number")),
-    })
+    }
+    for key, domains in (
+        ("soc_entity", "sensor"),
+        ("reserve_soc_entity", ["number", "sensor"]),
+        ("forced_scene_entity", "scene"),
+        ("forced_power_entity", "number"),
+    ):
+        suggestion = _existing_suggestion(hass, key, values)
+        marker = vol.Optional(
+            key, description={"suggested_value": suggestion}
+        ) if suggestion else vol.Optional(key)
+        fields[marker] = selector.EntitySelector(
+            selector.EntitySelectorConfig(domain=domains)
+        )
+    return vol.Schema(fields)
 
 
 def verify(hass, values):
@@ -82,14 +117,14 @@ class SungrowGridPidConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors = verify(self.hass, user_input)
             if not errors:
                 return self.async_create_entry(title="Sungrow Energy Manager", data=user_input)
-            return self.async_show_form(step_id="user", data_schema=schema(user_input), errors=errors)
-        return self.async_show_form(step_id="user", data_schema=schema({}))
+            return self.async_show_form(step_id="user", data_schema=schema(user_input, self.hass), errors=errors)
+        return self.async_show_form(step_id="user", data_schema=schema({}, self.hass))
 
     async def async_step_remove(self, user_input=None):
         if user_input is None:
             return self.async_show_form(step_id="remove", data_schema=vol.Schema({
                 vol.Required("confirm", default=False): bool
-            }))
+            }), self.hass)
         if not user_input.get("confirm"):
             return self.async_abort(reason="removal_cancelled")
         for entry in self._async_current_entries():
@@ -107,7 +142,7 @@ class SungrowGridPidOptionsFlow(config_entries.OptionsFlow):
             errors = verify(self.hass, user_input)
             if not errors:
                 return self.async_create_entry(title="", data=user_input)
-            return self.async_show_form(step_id="init", data_schema=schema(user_input), errors=errors)
+            return self.async_show_form(step_id="init", data_schema=schema(user_input, self.hass), errors=errors)
         return self.async_show_form(step_id="init", data_schema=schema({
             **self.config_entry.data, **self.config_entry.options
         }))
