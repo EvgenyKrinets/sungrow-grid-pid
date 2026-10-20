@@ -37,6 +37,8 @@ class ManagerSwitch(SwitchEntity, RestoreEntity):
     async def async_turn_off(self, **kwargs):
         if self.morning:
             self.manager.morning_enabled = False
+            if self.manager.forced:
+                await self.manager.finish_forced()
         else:
             await self.manager.stop()
         self._attr_is_on = False
