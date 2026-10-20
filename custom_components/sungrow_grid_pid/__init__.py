@@ -72,6 +72,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Preserve normal user-editable automation/helpers; release the snapshot sensor.
     success = await hass.config_entries.async_unload_platforms(entry, ["sensor", "number", "switch", "time"])
     if success:
-        entry.async_unload_callbacks()
+        # ConfigEntry invokes callbacks registered with async_on_unload itself
+        # after async_unload_entry returns True. Do not call an internal/manual
+        # callback-unload method here: it can break options reloads.
         hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
+    else:
+        _LOGGER.error("SEM could not unload its entity platforms; options reload aborted")
     return success
