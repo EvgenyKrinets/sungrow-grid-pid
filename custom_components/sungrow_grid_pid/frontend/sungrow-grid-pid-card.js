@@ -1,4 +1,4 @@
-const CARD_VERSION="4.0.0";
+const CARD_VERSION="4.0.1";
 class SungrowGridPidCard extends HTMLElement {
   constructor(){super();this.attachShadow({mode:"open"});this._config={};this._editing=null;}
   setConfig(v){this._config=v||{};this.render();}
@@ -25,7 +25,7 @@ class SungrowGridPidCard extends HTMLElement {
     const exportId=this._config.export_entity||"sensor.export_power";
     const input=(label,id,unit)=>{
       const obj=this._hass.states[id];
-      return `<label class="setting"><span>${label}</span><div class="edit"><input data-entity="${id}" type="number" inputmode="decimal" min="${obj?.attributes.min??0}" max="${obj?.attributes.max??100000}" step="${obj?.attributes.step??1}" value="${obj?.state??''}" ${obj?"":"disabled"} /><small>${unit}</small></div></label>`;
+      return `<label class="setting"><span>${label}</span><div class="edit"><input data-entity="${id}" type="number" inputmode="decimal" min="${obj?.attributes.min??0}" max="${obj?.attributes.max??100000}" step="${obj?.attributes.step??1}" value="${obj && Number.isFinite(Number(obj.state)) ? Math.round(Number(obj.state)) : (obj?.state??'')}" ${obj?"":"disabled"} /><small>${unit}</small></div></label>`;
     };
     this.shadowRoot.innerHTML=`<style>
       *{box-sizing:border-box}ha-card{padding:16px;border-radius:16px;color:var(--primary-text-color)}
@@ -48,7 +48,7 @@ class SungrowGridPidCard extends HTMLElement {
       <div class="section"><div class="line"><strong>Battery Morning Discharge</strong><button data-switch="switch.sem_morning_discharge" class="${morningOn?"on":""}">${morningOn?"ON":"OFF"}</button></div>
       <label class="setting"><span>Start Time</span><div class="edit"><input type="time" data-time="time.sem_morning_start" value="${this._value("time.sem_morning_start").slice(0,5)}"></div></label>
       ${settings.slice(4).map(i=>input(...i)).join("")}
-      <div class="muted">Stop SOC: Battery Reserved SoC for Backup (selected in integration options)</div></div>
+      <div class="muted">Stop SOC: Battery Reserved SoC for Backup (selected in integration options)</div><div class="status">Morning Discharge: ${this._value("sensor.sem_morning_discharge_status")}</div><button id="testDischarge">Test Discharge Now</button></div>
     </ha-card>`;
     this.shadowRoot.querySelectorAll("[data-switch]").forEach(btn=>btn.onclick=async()=>{
       btn.disabled=true;
@@ -70,6 +70,12 @@ class SungrowGridPidCard extends HTMLElement {
       el.onchange=async()=>{try{await this._send("time","set_value",{entity_id:el.dataset.time,time:el.value+":00"});}
       catch(e){console.error(e);alert("SEM: "+e.message);}finally{this._editing=null;this.render();}};
     });
+    this.shadowRoot.getElementById("testDischarge").onclick=async()=>{
+      const btn=this.shadowRoot.getElementById("testDischarge");btn.disabled=true;
+      try{await this._send("button","press",{entity_id:"button.sem_test_morning_discharge"});}
+      catch(e){console.error("SEM test discharge",e);alert("SEM: "+e.message);}
+      finally{btn.disabled=false;}
+    };
     this.shadowRoot.querySelectorAll("[data-more]").forEach(el=>el.onclick=()=>this._more(this._hass.states[el.dataset.more]?el.dataset.more:charging));
   }
 }
