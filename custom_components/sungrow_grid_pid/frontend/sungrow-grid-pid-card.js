@@ -48,7 +48,7 @@ class SungrowGridPidCard extends HTMLElement {
       <div class="section"><div class="line"><strong>Battery Morning Discharge</strong><button data-switch="switch.sem_morning_discharge" class="${morningOn?"on":""}">${morningOn?"ON":"OFF"}</button></div>
       <label class="setting"><span>Start Time</span><div class="edit"><input type="time" data-time="time.sem_morning_start" value="${this._value("time.sem_morning_start").slice(0,5)}"></div></label>
       ${settings.slice(4).map(i=>input(...i)).join("")}
-      <div class="muted">Stop SOC: Battery Reserved SoC for Backup (selected in integration options)</div><div class="status">Morning Discharge: ${this._value("sensor.sem_morning_discharge_status")}</div><button id="testDischarge">Test Discharge Now</button></div>
+      <div class="muted">Stop SOC: Battery Reserved SoC for Backup (selected in integration options)</div><div class="status">Morning Discharge: ${this._value("sensor.sem_morning_discharge_status")}</div></div>
     </ha-card>`;
     this.shadowRoot.querySelectorAll("[data-switch]").forEach(btn=>btn.onclick=async()=>{
       btn.disabled=true;
@@ -70,12 +70,6 @@ class SungrowGridPidCard extends HTMLElement {
       el.onchange=async()=>{try{await this._send("time","set_value",{entity_id:el.dataset.time,time:el.value+":00"});}
       catch(e){console.error(e);alert("SEM: "+e.message);}finally{this._editing=null;this.render();}};
     });
-    this.shadowRoot.getElementById("testDischarge").onclick=async()=>{
-      const btn=this.shadowRoot.getElementById("testDischarge");btn.disabled=true;
-      try{await this._send("button","press",{entity_id:"button.sem_test_morning_discharge"});}
-      catch(e){console.error("SEM test discharge",e);alert("SEM: "+e.message);}
-      finally{btn.disabled=false;}
-    };
     this.shadowRoot.querySelectorAll("[data-more]").forEach(el=>el.onclick=()=>this._more(this._hass.states[el.dataset.more]?el.dataset.more:charging));
   }
 }
