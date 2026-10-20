@@ -1,3 +1,12 @@
+## v4.0.1 — Morning Discharge diagnostics and manual trial
+
+- Battery Morning Discharge starts automatically only **in its configured minute** and only with the Grid Target main switch ON. Simply setting its switch to ON does not force immediate discharge.
+- New **Test Discharge Now** dashboard button invokes a supervised, immediate trial with the exact same SOC and availability guards as the schedule. It requires Grid Target active.
+- New `sensor.sem_morning_discharge_status` retains a useful reason for skipped or failed trials instead of having it immediately overwritten by the Grid Target status.
+- Select all four required entities through the integration's Configure options: SOC sensor, Backup Reserve SOC entity, Battery Forced Discharge scene, Forced Discharge Power number. Missing entities block test and scheduled actions.
+- Dashboard inputs show integer values instead of unnecessary `.0` decimals.
+- This is a test release. Only use manual forced discharge while observing the inverter and keeping BMS / grid export protections enabled.
+
 # Sungrow Energy Manager (SEM) — v4.0.0 beta
 
 This is an in-place upgrade of **Sungrow Grid PID**. The Home Assistant integration domain stays `sungrow_grid_pid`, the HACS repository URL stays the same, and the existing dashboard URL remains `/sungrow-grid-pid`. Do not install a second copy.
