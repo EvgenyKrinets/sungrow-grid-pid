@@ -140,19 +140,6 @@ class EnergyManager:
             _LOGGER.exception("Cannot exit forced discharge")
             self.status = "ERROR: cannot exit forced discharge"
 
-    async def manual_morning_test(self):
-        """Immediately test scheduled discharge with all safety checks."""
-        if not self.enabled:
-            self.morning_status = "Start Grid Target before testing"
-            self.notify()
-            return
-        if self.forced:
-            self.morning_status = "Already in Forced Discharge"
-            self.notify()
-            return
-        async with self._tick_lock:
-            await self.begin_forced()
-
     async def tick(self, _now):
         if self._tick_lock.locked():
             return
