@@ -56,6 +56,35 @@ class ChargeHistorySensor(SensorEntity, RestoreEntity):
             self.async_write_ha_state()
 
 
+class ManagerStatusSensor(SensorEntity):
+    """Native diagnostic status of the step controller."""
+
+    _attr_name = "SEM Manager Status"
+    _attr_unique_id = "sungrow_energy_manager_status"
+    _attr_should_poll = False
+    _attr_icon = "mdi:information-outline"
+
+    def __init__(self, manager):
+        self.manager = manager
+        self.entity_id = "sensor.sem_manager_status"
+
+    @property
+    def native_value(self):
+        return self.manager.status
+
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        self.manager.add_listener(self._notify)
+
+    @callback
+    def _notify(self):
+        self.async_write_ha_state()
+
+
 async def async_setup_entry(hass, entry, async_add_entities) -> None:
     charge = entry.options.get("charge_entity", entry.data.get("charge_entity", "number.battery_max_charge_power"))
-    async_add_entities([ChargeHistorySensor(hass, charge)])
+    from .const import DOMAIN
+    async_add_entities([
+        ChargeHistorySensor(hass, charge),
+        ManagerStatusSensor(hass.data[DOMAIN][entry.entry_id]),
+    ])
