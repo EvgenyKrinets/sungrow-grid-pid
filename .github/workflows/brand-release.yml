@@ -1,6 +1,6 @@
 name: Build brand and release
 # Generates HA 2026.3+ local branding and publishes semantic release.
-# Release target: dynamic manifest.json version; v4.0.3 live forced discharge power update and SP help text
+# Release target: dynamic manifest.json version; v4.0.4 README launch and friendly-name setup suggestions
 # Visual dashboard release trigger
 # Publish version from manifest.json; never retag old releases
 
