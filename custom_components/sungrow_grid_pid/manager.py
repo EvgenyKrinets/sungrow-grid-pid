@@ -32,6 +32,12 @@ class EnergyManager:
         self.hass, self.entry = hass, entry
         self.enabled = False
         self.morning_enabled = False
+        self._saved_enabled = None
+        self._saved_morning_enabled = None
+        self._ready = False
+        self._resume_scene_pending = False
+        self._resume_retry_at = 0.0
+        self.exit_requested = False
         self.params = {
             "export_target": 10000.0,
             "dead_band": 1000.0,
@@ -54,7 +60,15 @@ class EnergyManager:
         self._store = Store(hass, 1, "sungrow_energy_manager_" + entry.entry_id)
 
     async def persist(self):
-        await self._store.async_save({"forced": self.forced, "last_run": self.last_run_date.isoformat() if self.last_run_date else None, "last_run_time": self.last_run_time})
+        """Persist intended switch states together with ongoing discharge state."""
+        await self._store.async_save({
+            "enabled": self.enabled,
+            "morning_enabled": self.morning_enabled,
+            "forced": self.forced,
+            "exit_requested": self.exit_requested,
+            "last_run": self.last_run_date.isoformat() if self.last_run_date else None,
+            "last_run_time": self.last_run_time,
+        })
 
     def setting(self, name):
         return self.entry.options.get(name, self.entry.data.get(name, ""))
@@ -66,27 +80,99 @@ class EnergyManager:
         for listener in list(self.listeners):
             listener()
 
-    async def start(self):
-        # Prevent simultaneous commands from the previous YAML-based PID.
+    async def _disable_legacy(self):
+        """Never allow the old PID and SEM to command the battery together."""
         for state in self.hass.states.async_all("automation"):
             if state.entity_id == OLD_AUTOMATION or state.attributes.get("friendly_name", "").lower() == "simple grid battery controller":
                 if state.state == "on":
                     await self.hass.services.async_call("automation", "turn_off", {"entity_id": state.entity_id}, blocking=True)
+    async def _activate_self_consumption(self):
         scene = self.setting("scene_entity")
-        if scene and self.hass.states.get(scene):
-            await self.hass.services.async_call("scene", "turn_on", {"entity_id": scene}, blocking=True)
-        self.enabled = True
-        self.direction, self.started = 0, None
+        state = self.hass.states.get(scene) if scene else None
+        if not scene or state is None or state.state == "unavailable":
+            self.status = "Waiting for Self-Consumption scene"
+            return False
+        try:
+            await self.hass.services.async_call(
+                "scene", "turn_on", {"entity_id": scene}, blocking=True
+            )
+        except Exception:
+            _LOGGER.exception("SEM could not restore Self-Consumption scene")
+            self.status = "ERROR: Self-Consumption scene failed"
+            return False
         self.status = "Grid Target active"
+        return True
+
+    async def start(self):
+        await self._disable_legacy()
+        if not self.forced:
+            # On an explicit START, preserve previous behavior: activate the scene.
+            if not await self._activate_self_consumption():
+                raise RuntimeError("Selected Self-Consumption scene is unavailable")
+        self.enabled = True
+        self._resume_scene_pending = False
+        self.exit_requested = False
+        self.direction, self.started = 0, None
+        if self.forced:
+            self.status = "Battery Forced Discharge"
+        await self.persist()
         self.notify()
 
     async def stop(self):
         self.enabled = False
         self.direction, self.started = 0, None
+        self._resume_scene_pending = False
+        self.exit_requested = self.forced
+        await self.persist()
         if self.forced:
             await self.finish_forced()
-        self.status = "Stopped"
+        if not self.forced:
+            self.status = "Stopped"
         self.notify()
+
+    async def resume_after_restore(self):
+        """Resume remembered modes after entity parameters and time are restored."""
+        await self._disable_legacy()
+        self._ready = True
+        if self.forced:
+            soc = numeric(self.hass, self.setting("soc_entity"))
+            reserve = numeric(self.hass, self.setting("reserve_soc_entity"))
+            if (
+                not self.enabled or not self.morning_enabled or self.exit_requested
+                or soc is None or reserve is None
+                or not 0 <= soc <= 100 or not 0 <= reserve <= 100
+                or soc <= reserve
+            ):
+                self.exit_requested = True
+                self.morning_status = "Recovery: ending forced discharge (state or SOC unsafe)"
+                await self.finish_forced()
+                # Keep retrying the fallback until the scene can be called.
+            else:
+                self.status = "Battery Forced Discharge"
+                self.morning_status = "Resumed: monitoring forced discharge after HA restart"
+        elif self.enabled:
+            # Do not accidentally reset a running forced-discharge mode.
+            # Resume Self-Consumption when no forced discharge was recorded.
+            self._resume_scene_pending = True
+            await self._resume_self_consumption()
+        else:
+            self.status = "Stopped"
+        await self.persist()
+        self.notify()
+
+    async def _resume_self_consumption(self):
+        if not self._resume_scene_pending:
+            return
+        if self.hass.loop.time() < self._resume_retry_at:
+            return
+        await self._disable_legacy()
+        if await self._activate_self_consumption():
+            self._resume_scene_pending = False
+        else:
+            # No rapid retries when Modbus/scene entities are not yet ready.
+            self._resume_retry_at = self.hass.loop.time() + 30
+
+
 
     async def begin_forced(self):
         soc = numeric(self.hass, self.setting("soc_entity"))
@@ -114,6 +200,7 @@ class EnergyManager:
             await self.hass.services.async_call("number", "set_value", {"entity_id": power, "value": value}, blocking=True)
             await self.hass.services.async_call("scene", "turn_on", {"entity_id": mode}, blocking=True)
             self.forced = True
+            self.exit_requested = False
             self.last_run_date = datetime.now(__import__("zoneinfo").ZoneInfo(self.hass.config.time_zone)).date()
             self.last_run_time = self.start_time.strftime("%H:%M")
             await self.persist()
@@ -172,6 +259,7 @@ class EnergyManager:
         try:
             await self.hass.services.async_call("scene", "turn_on", {"entity_id": scene}, blocking=True)
             self.forced = False
+            self.exit_requested = False
             await self.persist()
             self.direction, self.started = 0, None
             self.status = "Grid Target active" if self.enabled else "Stopped"
@@ -188,18 +276,33 @@ class EnergyManager:
             await self._tick_impl(_now)
 
     async def _tick_impl(self, _now):
+        if not self._ready:
+            return
         if not self.enabled:
             if self.forced:
+                self.exit_requested = True
                 await self.finish_forced()
+            return
+        if self._resume_scene_pending and not self.forced:
+            await self._resume_self_consumption()
+            self.notify()
             return
         now = datetime.now(self.hass.config.time_zone and __import__("zoneinfo").ZoneInfo(self.hass.config.time_zone))
         if self.forced:
             soc = numeric(self.hass, self.setting("soc_entity"))
             reserved = numeric(self.hass, self.setting("reserve_soc_entity"))
-            if soc is None or reserved is None:
-                self.status = "ERROR: SOC missing; reverting mode"
+            if self.exit_requested or not self.morning_enabled:
+                self.exit_requested = True
+                await self.finish_forced()
+            elif (
+                soc is None or reserved is None
+                or not 0 <= soc <= 100 or not 0 <= reserved <= 100
+            ):
+                self.status = "ERROR: SOC unavailable/invalid; reverting mode"
+                self.exit_requested = True
                 await self.finish_forced()
             elif soc <= reserved:
+                self.exit_requested = True
                 await self.finish_forced()
             self.notify()
             return
@@ -286,9 +389,19 @@ async def setup_manager(hass, entry):
         except (ValueError, TypeError):
             pass
     manager.last_run_time = prior.get("last_run_time")
-    if prior.get("forced"):
-        manager.forced = True
-        await manager.finish_forced()
+    # Existing v4.0.4 storage holds only forced/last_run. In that case,
+    # switch RestoreEntity recovers ON/OFF from the previous HA state.
+    manager._saved_enabled = prior.get("enabled") if isinstance(prior.get("enabled"), bool) else None
+    manager._saved_morning_enabled = (
+        prior.get("morning_enabled") if isinstance(prior.get("morning_enabled"), bool) else None
+    )
+    manager.enabled = manager._saved_enabled is True
+    manager.morning_enabled = manager._saved_morning_enabled is True
+    manager.forced = prior.get("forced") is True
+    manager.exit_requested = prior.get("exit_requested") is True
+    # A forced mode must NOT automatically be switched off during setup.
+    # Wait until sensors, switches, numbers and scheduled time are restored,
+    # then check backup SOC before allowing the forced mode to continue.
     @callback
     def schedule_tick(now):
         hass.async_create_task(manager.tick(now))
