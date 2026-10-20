@@ -1,6 +1,6 @@
 <div align="center">
 
-![Sungrow Energy Manager — Smart export control and scheduled battery discharge](assets/sem-banner.svg)
+![Sungrow Energy Manager — product showcase](assets/sungrow-energy-manager-showcase.jpg)
 
 # Sungrow Energy Manager
 
