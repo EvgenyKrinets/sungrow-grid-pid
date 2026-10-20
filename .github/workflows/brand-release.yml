@@ -1,6 +1,6 @@
 name: Build brand and release
 # Generates HA 2026.3+ local branding and publishes semantic release.
-# Release target: dynamic manifest.json version; v4.0.5 restores Grid Target and Morning Discharge across restart
+# Release target: dynamic manifest.json version; v4.0.6 aligns HACS branding and product showcase README
 # Visual dashboard release trigger
 # Publish version from manifest.json; never retag old releases
 
