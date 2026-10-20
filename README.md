@@ -25,6 +25,15 @@ A Home Assistant custom integration for stepped solar export control and schedul
 
 This is a **Home Assistant control integration**, not an official Sungrow product. It uses entities already supplied by your Sungrow/Modbus integration and does not replace the inverter's safety functions, BMS protections, or certified grid-export limit.
 
+## v4.0.5 — Reliable restart recovery
+
+- Both **Grid Target (START/STOP)** and **Battery Morning Discharge (ON/OFF)** remember their previous positions after a Home Assistant restart and normal integration reload.
+- Active Morning Forced Discharge is **no longer cancelled unconditionally** during SEM startup. SEM resumes monitoring it when both switches were enabled and valid SOC is above the configured backup reserve.
+- If reserve is reached, required SOC data are invalid/unavailable, or the controller was disabled, SEM attempts to exit Forced Discharge via its configured Self-Consumption scene rather than leaving forced discharge unmanaged.
+- Existing installations are upgraded in place. For the first upgrade from older versions, SEM attempts to migrate the last saved native switch states; thereafter it stores the intended ON/OFF values independently.
+- **After upgrading from v4.0.4 or earlier, verify the two switches once.** If their previous ON states were not saved by Home Assistant, turn them on once. Future restarts will remember them.
+- Normal battery and inverter protections remain authoritative. Reissuing a scene or service command does not confirm the physical inverter mode; monitor it during the first reboot test.
+
 ## Features
 
 | Feature | What you get |
@@ -84,7 +93,7 @@ At the scheduled time SEM checks that Grid Target is enabled, the schedule is ON
 
 While forced discharge is active, you can change **Battery Forced Discharge Power**; SEM sends the updated limit to Sungrow immediately instead of waiting for the next scheduled start. Home Assistant accepting a command does not guarantee that the inverter will deliver that exact power: load, inverter logic and BMS limits still apply.
 
-**Important:** Discharge only starts while the main **Grid Target** switch is on, and after a Home Assistant restart you must manually re-enable Grid Target. When a scheduled attempt fails or is skipped, the status sensor records the reason, and changing the scheduled time allows another attempt. The schedule is not a substitute for battery or site electrical protection.
+**Important:** Discharge only starts while the main **Grid Target** switch is on, and after a Home Assistant restart SEM restores the previous ON/OFF positions of both switches. When a scheduled attempt fails or is skipped, the status sensor records the reason, and changing the scheduled time allows another attempt. The schedule is not a substitute for battery or site electrical protection.
 
 ## Installation
 
