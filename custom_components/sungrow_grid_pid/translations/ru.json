@@ -2,12 +2,25 @@
   "config": {
     "step": {
       "user": {
-        "title": "Sungrow Grid PID",
-        "description": "Укажите датчики Sungrow. Значения по умолчанию уже заполнены. Интеграция установит обычную автоматизацию, два вспомогательных числа и панель PID.",
+        "title": "Настройки Sungrow Energy Manager",
+        "description": "Выберите сущности Sungrow для контроля экспорта и дополнительной утренней разрядки. Для работы утренней разрядки необходимо указать все четыре связанные сущности.",
         "data": {
-          "export_entity": "Датчик экспорта",
-          "charge_entity": "Максимальная мощность зарядки",
-          "scene_entity": "Сцена при включении PID"
+          "export_entity": "Датчик мощности экспорта в сеть",
+          "charge_entity": "Регулятор максимальной мощности зарядки батареи",
+          "scene_entity": "Сцена Self-Consumption Mode (запуск и возврат)",
+          "soc_entity": "Датчик заряда батареи — SOC (%)",
+          "reserve_soc_entity": "Резерв заряда Battery Reserved SoC for Backup (%)",
+          "forced_scene_entity": "Сцена Battery Forced Discharge",
+          "forced_power_entity": "Регулятор мощности принудительной разрядки (Вт)"
+        },
+        "data_description": {
+          "export_entity": "Текущая мощность отдачи в сеть в ваттах. Grid Target использует её для определения отклонения от заданного экспорта.",
+          "charge_entity": "Числовая сущность, управляющая ограничением мощности зарядки батареи в ваттах. Grid Target изменяет её ступенями после задержки.",
+          "scene_entity": "Сцена, включаемая при запуске Grid Target и после завершения принудительной разрядки. Выберите Self-Consumption Mode (max battery discharge).",
+          "soc_entity": "Текущий процент заряда батареи. Утренняя разрядка начинается только выше заданного Empty SOC и резервного SOC.",
+          "reserve_soc_entity": "Текущий параметр Sungrow Battery Reserved SoC for Backup. При достижении этого процента принудительная разрядка прекращается.",
+          "forced_scene_entity": "Сцена, которая включает на инверторе режим Battery Forced Discharge. Используется только для утренней разрядки.",
+          "forced_power_entity": "Числовая сущность Battery forced charge discharge power. Перед включением принудительной разрядки сюда записывается заданная мощность в ваттах."
         }
       },
       "remove": {
@@ -33,12 +46,25 @@
   "options": {
     "step": {
       "init": {
-        "title": "Настройки Sungrow Grid PID",
-        "description": "Изменение источников экспорта, зарядки и сцены",
+        "title": "Настройки Sungrow Energy Manager",
+        "description": "Выберите сущности Sungrow для контроля экспорта и дополнительной утренней разрядки. Для работы утренней разрядки необходимо указать все четыре связанные сущности.",
         "data": {
-          "export_entity": "Датчик экспорта",
-          "charge_entity": "Максимальная мощность зарядки",
-          "scene_entity": "Сцена при включении PID"
+          "export_entity": "Датчик мощности экспорта в сеть",
+          "charge_entity": "Регулятор максимальной мощности зарядки батареи",
+          "scene_entity": "Сцена Self-Consumption Mode (запуск и возврат)",
+          "soc_entity": "Датчик заряда батареи — SOC (%)",
+          "reserve_soc_entity": "Резерв заряда Battery Reserved SoC for Backup (%)",
+          "forced_scene_entity": "Сцена Battery Forced Discharge",
+          "forced_power_entity": "Регулятор мощности принудительной разрядки (Вт)"
+        },
+        "data_description": {
+          "export_entity": "Текущая мощность отдачи в сеть в ваттах. Grid Target использует её для определения отклонения от заданного экспорта.",
+          "charge_entity": "Числовая сущность, управляющая ограничением мощности зарядки батареи в ваттах. Grid Target изменяет её ступенями после задержки.",
+          "scene_entity": "Сцена, включаемая при запуске Grid Target и после завершения принудительной разрядки. Выберите Self-Consumption Mode (max battery discharge).",
+          "soc_entity": "Текущий процент заряда батареи. Утренняя разрядка начинается только выше заданного Empty SOC и резервного SOC.",
+          "reserve_soc_entity": "Текущий параметр Sungrow Battery Reserved SoC for Backup. При достижении этого процента принудительная разрядка прекращается.",
+          "forced_scene_entity": "Сцена, которая включает на инверторе режим Battery Forced Discharge. Используется только для утренней разрядки.",
+          "forced_power_entity": "Числовая сущность Battery forced charge discharge power. Перед включением принудительной разрядки сюда записывается заданная мощность в ваттах."
         }
       }
     },
