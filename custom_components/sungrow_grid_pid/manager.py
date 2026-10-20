@@ -86,6 +86,7 @@ class EnergyManager:
             if state.entity_id == OLD_AUTOMATION or state.attributes.get("friendly_name", "").lower() == "simple grid battery controller":
                 if state.state == "on":
                     await self.hass.services.async_call("automation", "turn_off", {"entity_id": state.entity_id}, blocking=True)
+
     async def _activate_self_consumption(self):
         scene = self.setting("scene_entity")
         state = self.hass.states.get(scene) if scene else None
@@ -133,7 +134,6 @@ class EnergyManager:
     async def resume_after_restore(self):
         """Resume remembered modes after entity parameters and time are restored."""
         await self._disable_legacy()
-        self._ready = True
         if self.forced:
             soc = numeric(self.hass, self.setting("soc_entity"))
             reserve = numeric(self.hass, self.setting("reserve_soc_entity"))
@@ -158,6 +158,7 @@ class EnergyManager:
         else:
             self.status = "Stopped"
         await self.persist()
+        self._ready = True
         self.notify()
 
     async def _resume_self_consumption(self):
@@ -171,8 +172,6 @@ class EnergyManager:
         else:
             # No rapid retries when Modbus/scene entities are not yet ready.
             self._resume_retry_at = self.hass.loop.time() + 30
-
-
 
     async def begin_forced(self):
         soc = numeric(self.hass, self.setting("soc_entity"))
