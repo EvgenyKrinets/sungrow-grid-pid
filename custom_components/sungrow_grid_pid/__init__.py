@@ -10,6 +10,7 @@ from homeassistant.const import EVENT_STATE_CHANGED
 from .const import DOMAIN
 from .frontend import async_register_frontend
 from .installer import install
+from .manager import setup_manager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -54,43 +55,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         raise
 
     _LOGGER.info("Sungrow Grid PID automation: %s; restart required: %s", result, restart_needed)
-    await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
+    manager, unsub = await setup_manager(hass, entry)
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = manager
+    entry.async_on_unload(unsub)
+    await hass.config_entries.async_forward_entry_setups(entry, ["sensor", "number", "switch", "time"])
 
-    async def activate_selected_scene(automation_entity: str) -> None:
-        scene = entry.options.get("scene_entity", entry.data.get("scene_entity", ""))
-        if not scene:
-            _LOGGER.warning("PID enabled via %s but no scene is configured", automation_entity)
-            return
-        if hass.states.get(scene) is None:
-            _LOGGER.error("PID enabled via %s but selected scene %s does not exist", automation_entity, scene)
-            return
-        try:
-            await hass.services.async_call(
-                "scene", "turn_on", {"entity_id": scene}, blocking=True
-            )
-            _LOGGER.info("Activated PID startup scene %s for %s", scene, automation_entity)
-        except Exception:
-            _LOGGER.exception("Failed activating PID startup scene %s for %s", scene, automation_entity)
-
-    @callback
-    def on_automation_state(event):
-        new = event.data.get("new_state")
-        old = event.data.get("old_state")
-        if new is None or new.state != "on" or (old and old.state == "on"):
-            return
-        entity_id = event.data.get("entity_id", "")
-        if not entity_id.startswith("automation."):
-            return
-        # The YAML automation often has no ID, so HA may assign a different
-        # entity_id. Resolve by friendly name just as the dashboard card does.
-        expected = "automation.simple_grid_battery_controller"
-        friendly = str(new.attributes.get("friendly_name", "")).strip().lower()
-        if entity_id != expected and friendly != "simple grid battery controller":
-            return
-        hass.async_create_task(activate_selected_scene(entity_id))
-
-    # Listen even if the user's YAML automation is loaded after this integration.
-    entry.async_on_unload(hass.bus.async_listen(EVENT_STATE_CHANGED, on_automation_state))
     entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
     return True
 
@@ -101,4 +70,8 @@ async def _async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Preserve normal user-editable automation/helpers; release the snapshot sensor.
-    return await hass.config_entries.async_unload_platforms(entry, ["sensor"])
+    success = await hass.config_entries.async_unload_platforms(entry, ["sensor", "number", "switch", "time"])
+    if success:
+        entry.async_unload_callbacks()
+        hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
+    return success
