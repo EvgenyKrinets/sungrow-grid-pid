@@ -25,6 +25,12 @@ A Home Assistant custom integration for stepped solar export control and schedul
 
 This is a **Home Assistant control integration**, not an official Sungrow product. It uses entities already supplied by your Sungrow/Modbus integration and does not replace the inverter's safety functions, BMS protections, or certified grid-export limit.
 
+## v4.0.6 — HACS presentation update
+
+- The HACS repository display name is now **Sungrow Energy Manager**, matching the Home Assistant integration.
+- The release includes the full product-style README and uploaded high-resolution showcase banner so HACS can render the updated documentation when this version is selected.
+- No change to grid or battery control logic since v4.0.5.
+
 ## v4.0.5 — Reliable restart recovery
 
 - Both **Grid Target (START/STOP)** and **Battery Morning Discharge (ON/OFF)** remember their previous positions after a Home Assistant restart and normal integration reload.
