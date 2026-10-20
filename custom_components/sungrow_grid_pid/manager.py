@@ -126,6 +126,43 @@ class EnergyManager:
             self.morning_status = "ERROR: service call failed; inspect HA logs"
             self.notify()
 
+    async def update_forced_power(self, requested):
+        """Apply changed discharge power only while forced mode is active."""
+        if not self.forced:
+            return
+        async with self._tick_lock:
+            power = self.setting("forced_power_entity")
+            st = self.hass.states.get(power) if power else None
+            if st is None or not power.startswith("number."):
+                self.morning_status = "ERROR: Forced Discharge power entity unavailable"
+                self.notify()
+                raise ValueError(self.morning_status)
+            soc = numeric(self.hass, self.setting("soc_entity"))
+            reserve = numeric(self.hass, self.setting("reserve_soc_entity"))
+            if soc is None or reserve is None or not 0 <= reserve <= 100 or soc <= reserve:
+                self.morning_status = "ERROR: unsafe SOC/reserve; discharge power not changed"
+                self.notify()
+                raise ValueError(self.morning_status)
+            low = float(st.attributes.get("min", 0))
+            high = float(st.attributes.get("max", 25000))
+            step = float(st.attributes.get("step", 1)) or 1
+            if not low <= requested <= high:
+                self.morning_status = f"ERROR: requested power outside {low:g}–{high:g} W"
+                self.notify()
+                raise ValueError(self.morning_status)
+            applied = max(low, min(high, low + round((requested - low) / step) * step))
+            try:
+                await self.hass.services.async_call(
+                    "number", "set_value", {"entity_id": power, "value": applied}, blocking=True
+                )
+            except Exception:
+                self.morning_status = "ERROR: failed to update Forced Discharge power"
+                self.notify()
+                _LOGGER.exception("Failed to change forced discharge limit")
+                raise
+            self.morning_status = f"Active: forced discharge limit set to {applied:g} W"
+            self.notify()
+
     async def finish_forced(self):
         scene = self.setting("scene_entity")
         # Keep flag set if command fails, so the next tick retries safely.
