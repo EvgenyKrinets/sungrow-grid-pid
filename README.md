@@ -1,3 +1,48 @@
+# Sungrow Energy Manager (SEM) — v4.0.0 beta
+
+This is an in-place upgrade of **Sungrow Grid PID**. The Home Assistant integration domain stays `sungrow_grid_pid`, the HACS repository URL stays the same, and the existing dashboard URL remains `/sungrow-grid-pid`. Do not install a second copy.
+
+## New Grid Target (no PID)
+
+The native `switch.sem_grid_target` starts and stops the controller. When started, it activates your selected **Self-Consumption Mode (max battery discharge)** scene and disables the legacy `Simple Grid Battery Controller` automation. On setup the installer also turns off that legacy automation so two controllers cannot issue simultaneous charge commands.
+
+The controller reads the selected real grid export sensor and the currently assigned battery charging limit. Every second it evaluates whether the export is outside the dead band. After a continuous delay it changes the charge limit by precisely one configurable gain step, clamps to the source number's min/max/step, and starts another delay period. **Increasing and decreasing use the same delay.** Returning into the dead band or switching direction resets the timer.
+
+Native, editable entities:
+- `number.sem_export_target` — Export Target SP (default 10000 W)
+- `number.sem_dead_band` — Export Dead Band (default 1000 W)
+- `number.sem_delay` — Export Delay Time (default 600 seconds)
+- `number.sem_charge_gain` — Charge Gain SP (default 3000 W)
+- `sensor.sem_manager_status` — current status, direction and countdown
+- `switch.sem_grid_target` — enable / disable the manager
+
+Starting is **manual after each HA restart** as a conservative safety measure. Unlike the old PID, the new controller never writes the charge command on every sensor sample.
+
+## Optional Battery Morning Discharge
+
+Configure these four entities in **Settings → Devices & Services → Sungrow Energy Manager → Configure**: battery SOC sensor, **Battery Reserved SoC for Backup** sensor/number, the **Battery Forced Discharge** scene, and the native number for forced discharge power. These are optional during setup; **the discharge routine refuses to start** if entities are missing.
+
+- `switch.sem_morning_discharge` enables the schedule.
+- `time.sem_morning_start` defaults to 05:00.
+- `number.sem_empty_soc` defaults to 30%. If the battery is already at/below this threshold at the scheduled time, skip.
+- `number.sem_discharge_power` defaults to 8000 W.
+- When scheduled time arrives, verify SOC is above both Empty SOC and the configured backup reserve. Set forced discharge power, then activate the selected Forced Discharge scene.
+- On reaching the current backup reserve, activate the selected Self-Consumption scene, then resume Grid Target.
+- The daily trigger and active forced-discharge flag are persisted. If Home Assistant restarts during forced discharge, it attempts to return to Self-Consumption; failure is retried every second.
+
+**Safety:** Keep the inverter's own grid-export limit and BMS protections active. A ten-minute dead-band delay is *not* a network export safety limiter. Avoid enabling morning discharge for unattended use until scene and power mapping have been tested. If the destination scene is missing or fails, the manager records an error and retries. Mode change is not guaranteed if connection to the inverter is lost.
+
+## Installation / migration
+
+1. Install v4.0.0 via existing HACS repository, then restart Home Assistant.
+2. Check the old `automation.simple_grid_battery_controller` is **off**; do not enable it again.
+3. Check that the new SEM native entities and dashboard settings exist.
+4. Test Grid Target using short delay and small gain before restoring the planned 600 s / 3000 W, observing actual battery and grid power.
+5. For morning discharge configure four entity selectors in the integration options, verify their service operations in HA, and first test while supervising the inverter.
+
+The old PID YAML automation and input_number helpers remain in your installation for backward compatibility but are no longer driven by the SEM dashboard. The integration does not delete user's automations. The previous 10-second charge history snapshot sensor remains present and can be opened from the card.
+
+---
 ## Optimized charge history (v3.0.26)
 
 As of **v3.0.26**, the 10-second history timer runs its state updates on Home Assistant's event loop (fixing the non-thread-safe `async_write_ha_state` error in v3.0.25). The PID control loop **still runs every second** and sends charging-limit commands exactly as before. A new native Home Assistant sensor, `sensor.sungrow_pid_charge_history`, samples the configured battery charging-number entity **once every 10 seconds** and keeps its own Recorder history.
