@@ -1,0 +1,78 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "הגדרות Sungrow Energy Manager",
+        "description": "בחר את ישויות Sungrow לבקרת הייצוא לרשת ולפריקה המתוזמנת בבוקר. יש לבחור את כל ארבע הישויות הנדרשות להפעלת הפריקה.",
+        "data": {
+          "export_entity": "חיישן הספק ייצוא לרשת",
+          "charge_entity": "בקר הספק טעינה מרבי של הסוללה",
+          "scene_entity": "סצנת Self-Consumption Mode (הפעלה וחזרה)",
+          "soc_entity": "חיישן רמת טעינת הסוללה SOC (%)",
+          "reserve_soc_entity": "רזרבת סוללה Battery Reserved SoC for Backup (%)",
+          "forced_scene_entity": "סצנת Battery Forced Discharge",
+          "forced_power_entity": "בקר הספק פריקה מאולצת (W)"
+        },
+        "data_description": {
+          "export_entity": "הספק הייצוא בפועל לרשת בוואט. בקר Grid Target משתמש בנתון זה כדי לזהות חריגה מהיעד.",
+          "charge_entity": "ישות מספרית לכתיבת מגבלת הספק טעינת הסוללה בוואט. הבקר משנה אותה בשלבים לאחר זמן ההמתנה.",
+          "scene_entity": "סצנה המופעלת בתחילת Grid Target ולאחר סיום פריקה מאולצת. יש לבחור Self-Consumption Mode (max battery discharge).",
+          "soc_entity": "אחוז הטעינה הנוכחי. פריקת הבוקר תתחיל רק כאשר SOC גבוה מסף Empty SOC ומרזרבת הגיבוי.",
+          "reserve_soc_entity": "ערך Battery Reserved SoC for Backup של Sungrow. הפריקה המאולצת מסתיימת כאשר ה-SOC מגיע לערך זה.",
+          "forced_scene_entity": "סצנה המפעילה בממיר את מצב Battery Forced Discharge. נדרשת לפריקת הבוקר בלבד.",
+          "forced_power_entity": "ישות מספרית לכתיבת Battery forced charge discharge power. לפני התחלת הפריקה הבקר מגדיר בה את ההספק בוואט."
+        }
+      },
+      "remove": {
+        "title": "Remove Sungrow Grid PID",
+        "description": "An existing Sungrow Grid PID entry was found, even if it is hidden from the integrations list. Confirm removal of the entry and its entities. Other integrations will not be affected.",
+        "data": {
+          "confirm": "Yes, remove Sungrow Grid PID"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Sungrow Grid PID is already installed.",
+      "removed_successfully": "Sungrow Grid PID entry removed. You can uninstall its files through HACS.",
+      "removal_cancelled": "Removal cancelled."
+    },
+    "error": {
+      "entity_not_found": "Entity not found",
+      "entity_unavailable": "Entity unavailable",
+      "entity_not_numeric": "Sensor is not numeric",
+      "charge_range": "Invalid charge control range: max must be greater than min"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "הגדרות Sungrow Energy Manager",
+        "description": "בחר את ישויות Sungrow לבקרת הייצוא לרשת ולפריקה המתוזמנת בבוקר. יש לבחור את כל ארבע הישויות הנדרשות להפעלת הפריקה.",
+        "data": {
+          "export_entity": "חיישן הספק ייצוא לרשת",
+          "charge_entity": "בקר הספק טעינה מרבי של הסוללה",
+          "scene_entity": "סצנת Self-Consumption Mode (הפעלה וחזרה)",
+          "soc_entity": "חיישן רמת טעינת הסוללה SOC (%)",
+          "reserve_soc_entity": "רזרבת סוללה Battery Reserved SoC for Backup (%)",
+          "forced_scene_entity": "סצנת Battery Forced Discharge",
+          "forced_power_entity": "בקר הספק פריקה מאולצת (W)"
+        },
+        "data_description": {
+          "export_entity": "הספק הייצוא בפועל לרשת בוואט. בקר Grid Target משתמש בנתון זה כדי לזהות חריגה מהיעד.",
+          "charge_entity": "ישות מספרית לכתיבת מגבלת הספק טעינת הסוללה בוואט. הבקר משנה אותה בשלבים לאחר זמן ההמתנה.",
+          "scene_entity": "סצנה המופעלת בתחילת Grid Target ולאחר סיום פריקה מאולצת. יש לבחור Self-Consumption Mode (max battery discharge).",
+          "soc_entity": "אחוז הטעינה הנוכחי. פריקת הבוקר תתחיל רק כאשר SOC גבוה מסף Empty SOC ומרזרבת הגיבוי.",
+          "reserve_soc_entity": "ערך Battery Reserved SoC for Backup של Sungrow. הפריקה המאולצת מסתיימת כאשר ה-SOC מגיע לערך זה.",
+          "forced_scene_entity": "סצנה המפעילה בממיר את מצב Battery Forced Discharge. נדרשת לפריקת הבוקר בלבד.",
+          "forced_power_entity": "ישות מספרית לכתיבת Battery forced charge discharge power. לפני התחלת הפריקה הבקר מגדיר בה את ההספק בוואט."
+        }
+      }
+    },
+    "error": {
+      "entity_not_found": "Entity not found",
+      "entity_unavailable": "Entity unavailable",
+      "entity_not_numeric": "Sensor is not numeric",
+      "charge_range": "Invalid charge control range: max must be greater than min"
+    }
+  }
+}
