@@ -1,4 +1,4 @@
-const CARD_VERSION="4.0.2";
+const CARD_VERSION="4.0.3";
 class SungrowGridPidCard extends HTMLElement {
   constructor(){super();this.attachShadow({mode:"open"});this._config={};this._editing=null;}
   setConfig(v){this._config=v||{};this.render();}
@@ -12,22 +12,22 @@ class SungrowGridPidCard extends HTMLElement {
   render(){
     if(!this._hass)return;
     const settings=[
-      ["Export Target SP","number.sem_export_target","W"],
-      ["Export Dead Band","number.sem_dead_band","W"],
-      ["Export Delay Time","number.sem_delay","s"],
-      ["Charge Gain SP","number.sem_charge_gain","W"],
-      ["Empty SOC SP","number.sem_empty_soc","%"],
-      ["Battery Forced Discharge Power","number.sem_discharge_power","W"]
+      ["Export Target SP","number.sem_export_target","W","Желаемая мощность экспорта в сеть. Например, 14 000 Вт."],
+      ["Export Dead Band","number.sem_dead_band","W","Допустимое отклонение от Export Target в обе стороны. Пока экспорт в этом диапазоне, зарядка не изменяется."],
+      ["Export Delay Time","number.sem_delay","s","Сколько секунд отклонение должно непрерывно оставаться за пределами Dead Band до одного шага регулировки."],
+      ["Charge Gain SP","number.sem_charge_gain","W","На сколько ватт увеличивать или уменьшать лимит зарядки после истечения таймера."],
+      ["Empty SOC SP","number.sem_empty_soc","%","Утром принудительная разрядка запускается, только если фактический SOC выше этого порога и резерва батареи."],
+      ["Battery Forced Discharge Power","number.sem_discharge_power","W","Лимит мощности принудительной разрядки. Изменения во время активной разрядки сразу отправляются инвертору."]
     ];
     const gridOn=this._value("switch.sem_grid_target")==="on";
     const morningOn=this._value("switch.sem_morning_discharge")==="on";
     const charging=this._config.charge_entity||"number.battery_max_charge_power";
     const exportId=this._config.export_entity||"sensor.export_power";
-    const input=(label,id,unit)=>{
+    const input=(label,id,unit,description)=>{
       const obj=this._hass.states[id];
-      return `<label class="setting"><span>${label}</span><div class="edit"><input data-entity="${id}" type="number" inputmode="decimal" min="${obj?.attributes.min??0}" max="${obj?.attributes.max??100000}" step="${obj?.attributes.step??1}" value="${obj && Number.isFinite(Number(obj.state)) ? Math.round(Number(obj.state)) : (obj?.state??'')}" ${obj?"":"disabled"} /><small>${unit}</small></div></label>`;
+      return `<label class="setting"><span class="settingText"><strong>${label}</strong><small class="help">${description}</small></span><div class="edit"><input data-entity="${id}" type="number" inputmode="decimal" min="${obj?.attributes.min??0}" max="${obj?.attributes.max??100000}" step="${obj?.attributes.step??1}" value="${obj && Number.isFinite(Number(obj.state)) ? Math.round(Number(obj.state)) : (obj?.state??'')}" ${obj?"":"disabled"} /><small>${unit}</small></div></label>`;
     };
-    this.shadowRoot.innerHTML=`<style>
+    this.shadowRoot.innerHTML=`<style>\n      .settingText{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}.settingText strong{font-weight:500}.settingText .help{display:block;line-height:1.35;color:var(--secondary-text-color);font-size:11px;max-width:330px}
       *{box-sizing:border-box}ha-card{padding:16px;border-radius:16px;color:var(--primary-text-color)}
       .title{font-size:20px;font-weight:700}.muted{font-size:12px;color:var(--secondary-text-color)}
       .header,.line,.setting,.edit,.stats{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -38,7 +38,7 @@ class SungrowGridPidCard extends HTMLElement {
       button.on{background:var(--success-color,#388e3c);color:white}
       button:disabled{opacity:.5}.stats{margin-top:14px}.stat{flex:1;background:var(--secondary-background-color);padding:12px;border-radius:10px;cursor:pointer}.stat b{display:block;font-size:19px;margin-top:5px}
       .status{margin-top:10px;padding:10px;background:var(--secondary-background-color);border-radius:9px;font-size:12px}
-      @media(max-width:430px){.setting{align-items:flex-start}.setting span{max-width:54%}input{width:96px}.stats{gap:7px}.stat{padding:9px}.stat b{font-size:16px}}
+      @media(max-width:430px){.setting{align-items:flex-start}.setting span{max-width:54%}input{width:96px}.settingText .help{font-size:10px}.stats{gap:7px}.stat{padding:9px}.stat b{font-size:16px}}
     </style><ha-card>
       <div class="header"><div><div class="title">Sungrow Energy Manager</div><div class="muted">SEM v${CARD_VERSION} · Grid & Battery Control</div></div><button data-switch="switch.sem_grid_target" class="${gridOn?"on":""}">${gridOn?"STOP":"START"}</button></div>
       <div class="stats"><div class="stat" data-more="${exportId}"><span class="muted">Grid Export</span><b>${this._fmt(exportId)} W</b></div><div class="stat" data-more="sensor.sungrow_pid_charge_history"><span class="muted">Battery Charge SP</span><b>${this._fmt(charging)} W</b></div></div>
