@@ -1,6 +1,6 @@
 name: Build brand and release
 # Generates HA 2026.3+ local branding and publishes semantic release.
-# Release target: dynamic manifest.json version; v3.0.26 automatically exclude charge-power Activity preserving history
+# Release target: dynamic manifest.json version; v4.0.0 automatically exclude charge-power Activity preserving history
 # Visual dashboard release trigger
 # Publish version from manifest.json; never retag old releases
 
@@ -67,5 +67,5 @@ jobs:
             git push origin "${TAG}"
           fi
           if ! gh release view "${TAG}" >/dev/null 2>&1; then
-            gh release create "${TAG}" --title "Sungrow Grid PID ${TAG}" --notes "Home Assistant editable PID automation and helper installer; selector and registration fixes."
+            gh release create "${TAG}" --title "Sungrow Energy Manager ${TAG} (beta)" --notes "First SEM beta: step-based Grid Target controller, symmetrical dead-band delay, native user parameters, optional morning forced discharge, safety restore and in-place upgrade from Sungrow Grid PID."
           fi
