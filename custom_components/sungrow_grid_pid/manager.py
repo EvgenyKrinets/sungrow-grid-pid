@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import asyncio
 import math
 from datetime import datetime, time, timedelta
 
@@ -45,6 +46,7 @@ class EnergyManager:
         self.forced = False
         self.status = "Stopped"
         self.listeners = []
+        self._tick_lock = asyncio.Lock()
 
     def setting(self, name):
         return self.entry.options.get(name, self.entry.data.get(name, ""))
@@ -122,7 +124,15 @@ class EnergyManager:
             self.status = "ERROR: cannot exit forced discharge"
 
     async def tick(self, _now):
+        if self._tick_lock.locked():
+            return
+        async with self._tick_lock:
+            await self._tick_impl(_now)
+
+    async def _tick_impl(self, _now):
         if not self.enabled:
+            if self.forced:
+                await self.finish_forced()
             return
         now = datetime.now(self.hass.config.time_zone and __import__("zoneinfo").ZoneInfo(self.hass.config.time_zone))
         if self.forced:
