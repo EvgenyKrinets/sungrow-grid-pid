@@ -12,6 +12,10 @@ DEFAULTS = {
     "export_entity": "sensor.export_power",
     "charge_entity": "number.battery_max_charge_power",
     "scene_entity": "scene.self_consumption_mode_max_battery_discharge",
+    "soc_entity": "",
+    "reserve_soc_entity": "",
+    "forced_scene_entity": "",
+    "forced_power_entity": "",
 }
 
 
@@ -24,6 +28,10 @@ def schema(values):
             selector.EntitySelector(selector.EntitySelectorConfig(domain="number")),
         vol.Required("scene_entity", default=values.get("scene_entity", DEFAULTS["scene_entity"])):
             selector.EntitySelector(selector.EntitySelectorConfig(domain="scene")),
+        vol.Optional("soc_entity", description={"suggested_value": values.get("soc_entity", "")}): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
+        vol.Optional("reserve_soc_entity", description={"suggested_value": values.get("reserve_soc_entity", "")}): selector.EntitySelector(selector.EntitySelectorConfig(domain=["number", "sensor"])),
+        vol.Optional("forced_scene_entity", description={"suggested_value": values.get("forced_scene_entity", "")}): selector.EntitySelector(selector.EntitySelectorConfig(domain="scene")),
+        vol.Optional("forced_power_entity", description={"suggested_value": values.get("forced_power_entity", "")}): selector.EntitySelector(selector.EntitySelectorConfig(domain="number")),
     })
 
 
@@ -55,6 +63,12 @@ def verify(hass, values):
                     errors[key] = "charge_range"
             except (ValueError, TypeError):
                 errors[key] = "charge_range"
+    for key, domain in (("soc_entity", "sensor"), ("reserve_soc_entity", ("number", "sensor")), ("forced_scene_entity", "scene"), ("forced_power_entity", "number")):
+        value = values.get(key)
+        if value and (not value.startswith(tuple((domain,) if isinstance(domain,str) else domain)[0] + ".") if isinstance(domain,str) else not any(value.startswith(d+".") for d in domain)):
+            errors[key] = "entity_not_found"
+        elif value and hass.states.get(value) is None:
+            errors[key] = "entity_not_found"
     return errors
 
 
@@ -67,7 +81,7 @@ class SungrowGridPidConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             errors = verify(self.hass, user_input)
             if not errors:
-                return self.async_create_entry(title="Sungrow Grid PID", data=user_input)
+                return self.async_create_entry(title="Sungrow Energy Manager", data=user_input)
             return self.async_show_form(step_id="user", data_schema=schema(user_input), errors=errors)
         return self.async_show_form(step_id="user", data_schema=schema({}))
 
