@@ -1,6 +1,6 @@
 name: Build brand and release
 # Generates HA 2026.3+ local branding and publishes semantic release.
-# Release target: dynamic manifest.json version; v4.0.4 README launch and friendly-name setup suggestions
+# Release target: dynamic manifest.json version; v4.0.5 restores Grid Target and Morning Discharge across restart
 # Visual dashboard release trigger
 # Publish version from manifest.json; never retag old releases
 
@@ -21,6 +21,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify Python source parses
         run: python -m compileall -q custom_components/sungrow_grid_pid
+      - name: Test restart restoration and battery discharge safety
+        run: python -m unittest discover -s tests -v
       - name: Create local brand PNG files
         shell: python
         run: |
