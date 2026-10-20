@@ -42,6 +42,10 @@ class Parameter(NumberEntity, RestoreEntity):
         self.manager.params[self.key] = self._attr_native_value
 
     async def async_set_native_value(self, value):
+        # Do not display a new discharge setpoint as applied if Sungrow
+        # rejects the live command. The original input is retained on error.
+        if self.key == "discharge_power" and self.manager.forced:
+            await self.manager.update_forced_power(value)
         self._attr_native_value = value
         self.manager.params[self.key] = value
         self.async_write_ha_state()
