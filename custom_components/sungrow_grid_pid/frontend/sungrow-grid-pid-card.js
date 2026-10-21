@@ -144,11 +144,14 @@ class SungrowGridPidCard extends HTMLElement {
     });
     // Clicking elsewhere inside the card releases a dismissed native picker,
     // without requiring the browser to fire a blur/change event.
-    this.shadowRoot.addEventListener("pointerdown",e=>{
-      if(e.target!==this.shadowRoot.querySelector("[data-time]")){
-        this._timePickerEngaged=false;
-      }
-    });
+    if(!this._pickerDismissListenerAdded){
+      this.shadowRoot.addEventListener("pointerdown",e=>{
+        if(e.target!==this.shadowRoot.querySelector("[data-time]")){
+          this._timePickerEngaged=false;
+        }
+      });
+      this._pickerDismissListenerAdded=true;
+    }
     this.updateLive();
     this.shadowRoot.querySelectorAll("[data-more]").forEach(el=>el.onclick=()=>this._more(this._hass.states[el.dataset.more]?el.dataset.more:charging));
   }
