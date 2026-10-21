@@ -1,14 +1,67 @@
-const CARD_VERSION="4.0.6";
+const CARD_VERSION="4.0.7";
 class SungrowGridPidCard extends HTMLElement {
-  constructor(){super();this.attachShadow({mode:"open"});this._config={};this._editing=null;}
-  setConfig(v){this._config=v||{};this.render();}
-  set hass(h){this._hass=h;if(!this._editing)this.render();}
+  constructor(){super();this.attachShadow({mode:"open"});this._config={};this._editing=null;this._timePickerEngaged=false;}
+  setConfig(v){
+    const next=v||{};
+    const changed=JSON.stringify(next)!==JSON.stringify(this._config);
+    this._config=next;
+    if(changed || !this.shadowRoot.querySelector("ha-card"))this.render();
+    else this.updateLive();
+  }
+  set hass(h){
+    this._hass=h;
+    // Never replace the time input when HA publishes new states.
+    // Replacing it closes the browser's native time picker on desktop/mobile.
+    if(!this.shadowRoot.querySelector("ha-card"))this.render();
+    else this.updateLive();
+  }
   getCardSize(){return 7;}
   static getStubConfig(){return {};}
   _value(id){const v=this._hass?.states[id]?.state;return v===undefined?"—":v;}
   _fmt(id){const v=Number(this._value(id));return Number.isFinite(v)?v.toLocaleString():"—";}
   _send(domain,service,data){return this._hass.callService(domain,service,data);}
   _more(id){this.dispatchEvent(new CustomEvent("hass-more-info",{detail:{entityId:id},bubbles:true,composed:true}));}
+  updateLive(){
+    if(!this._hass)return;
+    const root=this.shadowRoot;
+    const exportId=this._config.export_entity||"sensor.export_power";
+    const chargeId=this._config.charge_entity||"number.battery_max_charge_power";
+    const setText=(selector,text)=>{
+      const node=root.querySelector(selector);
+      if(node && node.textContent!==text)node.textContent=text;
+    };
+    setText('[data-stat="export"] b',this._fmt(exportId)+" W");
+    setText('[data-stat="charge"] b',this._fmt(chargeId)+" W");
+    const gridOn=this._value("switch.sem_grid_target")==="on";
+    const morningOn=this._value("switch.sem_morning_discharge")==="on";
+    setText("[data-grid-state]",gridOn?"Active":"Stopped");
+    setText("[data-grid-status]",this._value("sensor.sem_manager_status"));
+    setText("[data-morning-status]","Morning Discharge: "+this._value("sensor.sem_morning_discharge_status"));
+    for(const [entityId,isOn,onText,offText] of [
+      ["switch.sem_grid_target",gridOn,"STOP","START"],
+      ["switch.sem_morning_discharge",morningOn,"ON","OFF"]
+    ]){
+      const btn=root.querySelector('[data-switch="'+entityId+'"]');
+      if(btn){
+        btn.classList.toggle("on",isOn);
+        if(btn.textContent!==(isOn?onText:offText))btn.textContent=isOn?onText:offText;
+      }
+    }
+    // Refresh non-edited SP values without destroying or replacing any controls.
+    root.querySelectorAll("[data-entity]").forEach(el=>{
+      if(el===root.activeElement || this._editing===el.dataset.entity)return;
+      const state=this._hass.states[el.dataset.entity];
+      if(!state)return;
+      const num=Number(state.state);
+      const value=Number.isFinite(num)?String(Math.round(num)):state.state;
+      if(el.value!==value)el.value=value;
+    });
+    const timeInput=root.querySelector("[data-time]");
+    if(timeInput && !this._timePickerEngaged && timeInput!==root.activeElement){
+      const time=this._value(timeInput.dataset.time).slice(0,5);
+      if(/^\d{2}:\d{2}$/.test(time) && timeInput.value!==time)timeInput.value=time;
+    }
+  }
   render(){
     if(!this._hass)return;
     const settings=[
@@ -41,14 +94,14 @@ class SungrowGridPidCard extends HTMLElement {
       @media(max-width:430px){.setting{align-items:flex-start}.setting span{max-width:54%}input{width:96px}.settingText .help{font-size:10px}.stats{gap:7px}.stat{padding:9px}.stat b{font-size:16px}}
     </style><ha-card>
       <div class="header"><div><div class="title">Sungrow Energy Manager</div><div class="muted">SEM v${CARD_VERSION} · Grid & Battery Control</div></div><button data-switch="switch.sem_grid_target" class="${gridOn?"on":""}">${gridOn?"STOP":"START"}</button></div>
-      <div class="stats"><div class="stat" data-more="${exportId}"><span class="muted">Grid Export</span><b>${this._fmt(exportId)} W</b></div><div class="stat" data-more="sensor.sungrow_pid_charge_history"><span class="muted">Battery Charge SP</span><b>${this._fmt(charging)} W</b></div></div>
-      <div class="section"><div class="line"><strong>Grid Target</strong><span class="muted">${gridOn?"Active":"Stopped"}</span></div>
+      <div class="stats"><div class="stat" data-stat="export" data-more="${exportId}"><span class="muted">Grid Export</span><b>${this._fmt(exportId)} W</b></div><div class="stat" data-stat="charge" data-more="sensor.sungrow_pid_charge_history"><span class="muted">Battery Charge SP</span><b>${this._fmt(charging)} W</b></div></div>
+      <div class="section"><div class="line"><strong>Grid Target</strong><span class="muted" data-grid-state>${gridOn?"Active":"Stopped"}</span></div>
       ${settings.slice(0,4).map(i=>input(...i)).join("")}
-      <div class="status">${this._value("sensor.sem_manager_status")}</div></div>
+      <div class="status" data-grid-status>${this._value("sensor.sem_manager_status")}</div></div>
       <div class="section"><div class="line"><strong>Battery Morning Discharge</strong><button data-switch="switch.sem_morning_discharge" class="${morningOn?"on":""}">${morningOn?"ON":"OFF"}</button></div>
       <label class="setting"><span>Start Time</span><div class="edit"><input type="time" data-time="time.sem_morning_start" value="${this._value("time.sem_morning_start").slice(0,5)}"></div></label>
       ${settings.slice(4).map(i=>input(...i)).join("")}
-      <div class="muted">Stop SOC: Battery Reserved SoC for Backup (selected in integration options)</div><div class="status">Morning Discharge: ${this._value("sensor.sem_morning_discharge_status")}</div></div>
+      <div class="muted">Stop SOC: Battery Reserved SoC for Backup (selected in integration options)</div><div class="status" data-morning-status>Morning Discharge: ${this._value("sensor.sem_morning_discharge_status")}</div></div>
     </ha-card>`;
     this.shadowRoot.querySelectorAll("[data-switch]").forEach(btn=>btn.onclick=async()=>{
       btn.disabled=true;
@@ -61,15 +114,26 @@ class SungrowGridPidCard extends HTMLElement {
       el.onchange=async()=>{
         try{await this._send("number","set_value",{entity_id:el.dataset.entity,value:Number(el.value)});}
         catch(e){console.error("SEM set value error",e);alert("SEM: "+e.message);}
-        finally{this._editing=null;this.render();}
+        finally{this._editing=null;this.updateLive();}
       };
     });
     this.shadowRoot.querySelectorAll("[data-time]").forEach(el=>{
-      el.onfocus=()=>{this._editing="time";};
+      // The native time picker can temporarily blur the input while its popup
+      // is still open. Keep the node and its draft value intact in that case.
+      el.onpointerdown=()=>{this._timePickerEngaged=true;};
+      el.onfocus=()=>{this._timePickerEngaged=true;this._editing="time";};
       el.onblur=()=>{this._editing=null;};
-      el.onchange=async()=>{try{await this._send("time","set_value",{entity_id:el.dataset.time,time:el.value+":00"});}
-      catch(e){console.error(e);alert("SEM: "+e.message);}finally{this._editing=null;this.render();}};
+      el.onchange=async()=>{
+        this._timePickerEngaged=true;
+        const newTime=el.value;
+        try{
+          if(/^\d{2}:\d{2}$/.test(newTime))
+            await this._send("time","set_value",{entity_id:el.dataset.time,time:newTime+":00"});
+        }catch(e){console.error("SEM time update error",e);alert("SEM: "+e.message);}
+        finally{this._editing=null;this._timePickerEngaged=false;this.updateLive();}
+      };
     });
+    this.updateLive();
     this.shadowRoot.querySelectorAll("[data-more]").forEach(el=>el.onclick=()=>this._more(this._hass.states[el.dataset.more]?el.dataset.more:charging));
   }
 }
