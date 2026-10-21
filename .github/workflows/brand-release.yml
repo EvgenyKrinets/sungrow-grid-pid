@@ -1,6 +1,6 @@
 name: Build brand and release
 # Generates HA 2026.3+ local branding and publishes semantic release.
-# Release target: dynamic manifest.json version; stable release metadata (no beta label)
+# Release target: dynamic manifest.json version; v4.0.7 stable time picker
 # Visual dashboard release trigger
 # Publish version from manifest.json; never retag old releases
 
@@ -23,6 +23,10 @@ jobs:
         run: python -m compileall -q custom_components/sungrow_grid_pid
       - name: Test restart restoration and battery discharge safety
         run: python -m unittest discover -s tests -v
+      - name: Test Start Time picker without re-rendering the card
+        run: |
+          node --check custom_components/sungrow_grid_pid/frontend/sungrow-grid-pid-card.js
+          node tests/test_frontend_picker.cjs
       - name: Create local brand PNG files
         shell: python
         run: |
@@ -69,7 +73,7 @@ jobs:
             git push origin "${TAG}"
           fi
           RELEASE_TITLE="Sungrow Energy Manager ${TAG}"
-          RELEASE_NOTES="Sungrow Energy Manager stable release. Grid Target export control, scheduled battery discharge, restored settings across Home Assistant restarts, and the updated product documentation. See README.md for setup and operation."
+          RELEASE_NOTES="Sungrow Energy Manager v4.0.7 stable release. Fixes the Start Time picker disappearing during frequent Home Assistant state updates. Keeps live stats refreshing without rebuilding the card. No battery control algorithm changes. See README.md for details."
           if ! gh release view "${TAG}" >/dev/null 2>&1; then
             gh release create "${TAG}" --title "${RELEASE_TITLE}" --notes "${RELEASE_NOTES}"
           else
