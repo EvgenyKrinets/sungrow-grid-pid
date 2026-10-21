@@ -25,6 +25,14 @@ A Home Assistant custom integration for stepped solar export control and schedul
 
 This is a **Home Assistant control integration**, not an official Sungrow product. It uses entities already supplied by your Sungrow/Modbus integration and does not replace the inverter's safety functions, BMS protections, or certified grid-export limit.
 
+## v4.0.7 — Reliable Start Time picker
+
+- Fix the **Morning Discharge → Start Time** clock popup sometimes disappearing while Home Assistant updates live export power and battery status.
+- The Lovelace card now updates values, status labels, and buttons **in place** instead of replacing the entire card after each HA state event.
+- While the native browser time picker is open, its draft value and DOM element remain intact. The selected time is saved using the existing `time.set_value` service.
+- Includes a JavaScript regression test simulating 1,000 consecutive Home Assistant state updates with an open picker.
+- No changes to export control, charge limits, battery discharge or the morning schedule logic.
+
 ## v4.0.6 — HACS presentation update
 
 - The HACS repository display name is now **Sungrow Energy Manager**, matching the Home Assistant integration.
