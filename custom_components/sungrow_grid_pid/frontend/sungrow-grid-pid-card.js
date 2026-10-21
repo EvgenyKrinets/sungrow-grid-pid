@@ -1,6 +1,6 @@
 const CARD_VERSION="4.0.7";
 class SungrowGridPidCard extends HTMLElement {
-  constructor(){super();this.attachShadow({mode:"open"});this._config={};this._editing=null;this._timePickerEngaged=false;}
+  constructor(){super();this.attachShadow({mode:"open"});this._config={};this._editing=null;this._timePickerEngaged=false;this._pendingTimeValue=null;}
   setConfig(v){
     const next=v||{};
     const changed=JSON.stringify(next)!==JSON.stringify(this._config);
@@ -57,9 +57,12 @@ class SungrowGridPidCard extends HTMLElement {
       if(el.value!==value)el.value=value;
     });
     const timeInput=root.querySelector("[data-time]");
-    if(timeInput && !this._timePickerEngaged && timeInput!==root.activeElement){
+    if(timeInput){
       const time=this._value(timeInput.dataset.time).slice(0,5);
-      if(/^\d{2}:\d{2}$/.test(time) && timeInput.value!==time)timeInput.value=time;
+      // Avoid reverting a just-saved value while HA is still publishing it.
+      if(this._pendingTimeValue===time)this._pendingTimeValue=null;
+      if(!this._timePickerEngaged && !this._pendingTimeValue && timeInput!==root.activeElement
+         && /^\d{2}:\d{2}$/.test(time) && timeInput.value!==time)timeInput.value=time;
     }
   }
   render(){
@@ -127,11 +130,24 @@ class SungrowGridPidCard extends HTMLElement {
         this._timePickerEngaged=true;
         const newTime=el.value;
         try{
-          if(/^\d{2}:\d{2}$/.test(newTime))
+          if(/^\d{2}:\d{2}$/.test(newTime)){
+            this._pendingTimeValue=newTime;
             await this._send("time","set_value",{entity_id:el.dataset.time,time:newTime+":00"});
-        }catch(e){console.error("SEM time update error",e);alert("SEM: "+e.message);}
+          }
+        }catch(e){
+          this._pendingTimeValue=null;
+          console.error("SEM time update error",e);
+          alert("SEM: "+e.message);
+        }
         finally{this._editing=null;this._timePickerEngaged=false;this.updateLive();}
       };
+    });
+    // Clicking elsewhere inside the card releases a dismissed native picker,
+    // without requiring the browser to fire a blur/change event.
+    this.shadowRoot.addEventListener("pointerdown",e=>{
+      if(e.target!==this.shadowRoot.querySelector("[data-time]")){
+        this._timePickerEngaged=false;
+      }
     });
     this.updateLive();
     this.shadowRoot.querySelectorAll("[data-more]").forEach(el=>el.onclick=()=>this._more(this._hass.states[el.dataset.more]?el.dataset.more:charging));
