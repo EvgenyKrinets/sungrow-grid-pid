@@ -118,7 +118,7 @@ The mode has its own ON/OFF switch, remembers its state after a restart, and doe
 
 **Check the scene before trusting it:** a scene named *no battery discharge* is not proof that it stops discharge. Its inverter settings must actually block discharging. In particular, a **Battery max discharge power = 25,000 W** value does not mean zero discharge.
 
-[**Full Night Tariff setup and verification guide →**](docs/night-tariff.md)
+[**Night Tariff setup guide →**](docs/night-tariff.md) · [**Инструкция на русском →**](docs/night-tariff.ru.md)
 
 ## Installation
 
