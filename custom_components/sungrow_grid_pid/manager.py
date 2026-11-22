@@ -82,7 +82,19 @@ class EnergyManager:
         })
 
     def setting(self, name):
-        return self.entry.options.get(name, self.entry.data.get(name, ""))
+        configured = self.entry.options.get(name, self.entry.data.get(name, ""))
+        if configured or name != "discount_scene_entity":
+            return configured
+        # Existing Sungrow scene can be activated manually in Home Assistant.
+        # Find it by its exact friendly name; do not guess an entity ID or
+        # choose between duplicates, and respect an explicit user selection.
+        matches = [
+            state.entity_id
+            for state in self.hass.states.async_all("scene")
+            if str(state.attributes.get("friendly_name", "")).strip().casefold()
+            == "self-consumption mode (no battery discharge)"
+        ]
+        return matches[0] if len(matches) == 1 else ""
 
     def add_listener(self, callback_fn):
         self.listeners.append(callback_fn)
@@ -124,7 +136,7 @@ class EnergyManager:
         selected = "discount_scene_entity" if desired == "discount" else "scene_entity"
         scene = self.setting(selected)
         state = self.hass.states.get(scene) if scene else None
-        if not scene or not scene.startswith("scene.") or state is None or state.state in ("unavailable", "unknown"):
+        if not scene or not scene.startswith("scene.") or state is None or state.state == "unavailable":
             self.tariff_status = (
                 "ERROR: select Self-Consumption Mode (no battery discharge) in Configure"
                 if desired == "discount" else "ERROR: normal Self-Consumption scene unavailable"
@@ -159,7 +171,7 @@ class EnergyManager:
                 scene = self.setting("discount_scene_entity")
                 state = self.hass.states.get(scene) if scene else None
                 if not scene or not scene.startswith("scene.") or state is None or state.state in ("unavailable", "unknown"):
-                    self.tariff_status = "ERROR: configure the no-battery-discharge scene first"
+                    self.tariff_status = "ERROR: no unique available Self-Consumption Mode (no battery discharge) scene found"
                     self.notify()
                     raise ValueError(self.tariff_status)
             previous = self.tariff_enabled
