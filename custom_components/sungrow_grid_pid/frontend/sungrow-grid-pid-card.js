@@ -128,7 +128,14 @@ class SungrowGridPidCard extends HTMLElement {
     this.shadowRoot.querySelectorAll("[data-switch]").forEach(btn=>btn.onclick=async()=>{
       btn.disabled=true;
       try{await this._send("switch",this._value(btn.dataset.switch)==="on"?"turn_off":"turn_on",{entity_id:btn.dataset.switch});}
-      catch(e){console.error("SEM switch error",e);alert("SEM: "+e.message);}finally{btn.disabled=false;}
+      catch(e){
+        console.error("SEM switch error",e);
+        if(btn.dataset.switch==="switch.sem_night_tariff" && /no-battery-discharge scene/i.test(String(e.message))){
+          const note=this.shadowRoot.querySelector("[data-tariff-status]");
+          const lang=(this._hass?.language||"en").split("-")[0];
+          if(note)note.textContent=lang==="ru"?"Ночной тариф не включён: выберите сцену «Self-Consumption Mode (no battery discharge)» в настройках интеграции.":lang==="he"?"תעריף הלילה לא הופעל: בחר סצנה Self-Consumption Mode (no battery discharge) בהגדרות האינטגרציה.":"Night tariff was not enabled: select the Self-Consumption Mode (no battery discharge) scene in integration settings.";
+        }else alert("SEM: "+e.message);
+      }finally{btn.disabled=false;}
     });
     this.shadowRoot.querySelectorAll("[data-day]").forEach(btn=>btn.onclick=async()=>{
       const entityId=btn.dataset.day;
