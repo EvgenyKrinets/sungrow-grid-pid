@@ -34,12 +34,15 @@ class SungrowGridPidCard extends HTMLElement {
     setText('[data-stat="charge"] b',this._fmt(chargeId)+" W");
     const gridOn=this._value("switch.sem_grid_target")==="on";
     const morningOn=this._value("switch.sem_morning_discharge")==="on";
+    const tariffOn=this._value("switch.sem_night_tariff")==="on";
     setText("[data-grid-state]",gridOn?"Active":"Stopped");
     setText("[data-grid-status]",this._value("sensor.sem_manager_status"));
     setText("[data-morning-status]","Morning Discharge: "+this._value("sensor.sem_morning_discharge_status"));
+    setText("[data-tariff-status]","Night Tariff: "+this._value("sensor.sem_night_tariff_status"));
     for(const [entityId,isOn,onText,offText] of [
       ["switch.sem_grid_target",gridOn,"STOP","START"],
-      ["switch.sem_morning_discharge",morningOn,"ON","OFF"]
+      ["switch.sem_morning_discharge",morningOn,"ON","OFF"],
+      ["switch.sem_night_tariff",tariffOn,"ON","OFF"]
     ]){
       const btn=root.querySelector('[data-switch="'+entityId+'"]');
       if(btn){
@@ -56,14 +59,15 @@ class SungrowGridPidCard extends HTMLElement {
       const value=Number.isFinite(num)?String(Math.round(num)):state.state;
       if(el.value!==value)el.value=value;
     });
-    const timeInput=root.querySelector("[data-time]");
-    if(timeInput){
+    root.querySelectorAll("[data-time]").forEach(timeInput=>{
       const time=this._value(timeInput.dataset.time).slice(0,5);
-      // Avoid reverting a just-saved value while HA is still publishing it.
-      if(this._pendingTimeValue===time)this._pendingTimeValue=null;
-      if(!this._timePickerEngaged && !this._pendingTimeValue && timeInput!==root.activeElement
+      const pending=this._pendingTimeValue;
+      if(pending && pending.entityId===timeInput.dataset.time && pending.value===time)
+        this._pendingTimeValue=null;
+      const waitForThis=pending && pending.entityId===timeInput.dataset.time;
+      if(!this._timePickerEngaged && !waitForThis && timeInput!==root.activeElement
          && /^\d{2}:\d{2}$/.test(time) && timeInput.value!==time)timeInput.value=time;
-    }
+    });
   }
   render(){
     if(!this._hass)return;
@@ -77,6 +81,7 @@ class SungrowGridPidCard extends HTMLElement {
     ];
     const gridOn=this._value("switch.sem_grid_target")==="on";
     const morningOn=this._value("switch.sem_morning_discharge")==="on";
+    const tariffOn=this._value("switch.sem_night_tariff")==="on";
     const charging=this._config.charge_entity||"number.battery_max_charge_power";
     const exportId=this._config.export_entity||"sensor.export_power";
     const input=(label,id,unit,description)=>{
@@ -105,6 +110,13 @@ class SungrowGridPidCard extends HTMLElement {
       <label class="setting"><span>Start Time</span><div class="edit"><input type="time" data-time="time.sem_morning_start" value="${this._value("time.sem_morning_start").slice(0,5)}"></div></label>
       ${settings.slice(4).map(i=>input(...i)).join("")}
       <div class="muted">Stop SOC: Battery Reserved SoC for Backup (selected in integration options)</div><div class="status" data-morning-status>Morning Discharge: ${this._value("sensor.sem_morning_discharge_status")}</div></div>
+      <div class="section"><div class="line"><strong>Night Tariff Mode</strong><button data-switch="switch.sem_night_tariff" class="${tariffOn?"on":""}">${tariffOn?"ON":"OFF"}</button></div>
+      <div class="muted" style="margin-top:8px">Discounted nights: Sunday–Thursday. Friday and Saturday night starts are excluded. Time zone: Home Assistant local time.</div>
+      <label class="setting"><span>Discount Start</span><div class="edit"><input type="time" data-time="time.sem_tariff_start" value="${this._value("time.sem_tariff_start").slice(0,5)}"></div></label>
+      <label class="setting"><span>Discount End</span><div class="edit"><input type="time" data-time="time.sem_tariff_end" value="${this._value("time.sem_tariff_end").slice(0,5)}"></div></label>
+      <div class="muted">During discount: Self-Consumption (no battery discharge). Outside: Self-Consumption (max battery discharge).</div>
+      <div class="status" data-tariff-status>Night Tariff: ${this._value("sensor.sem_night_tariff_status")}</div>
+      <div class="muted">Configure the no-battery-discharge scene in the integration options. Verify the scene really blocks battery discharge.</div></div>
     </ha-card>`;
     this.shadowRoot.querySelectorAll("[data-switch]").forEach(btn=>btn.onclick=async()=>{
       btn.disabled=true;
@@ -131,7 +143,7 @@ class SungrowGridPidCard extends HTMLElement {
         const newTime=el.value;
         try{
           if(/^\d{2}:\d{2}$/.test(newTime)){
-            this._pendingTimeValue=newTime;
+            this._pendingTimeValue={entityId:el.dataset.time,value:newTime};
             await this._send("time","set_value",{entity_id:el.dataset.time,time:newTime+":00"});
           }
         }catch(e){
