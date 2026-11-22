@@ -9,6 +9,7 @@ from datetime import datetime, time, timedelta
 from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
+from .tariff import is_discount_time
 
 _LOGGER = logging.getLogger(__name__)
 OLD_AUTOMATION = "automation.simple_grid_battery_controller"
@@ -32,6 +33,13 @@ class EnergyManager:
         self.hass, self.entry = hass, entry
         self.enabled = False
         self.morning_enabled = False
+        self.tariff_enabled = False
+        self._saved_tariff_enabled = None
+        self.tariff_start = time(23, 0)
+        self.tariff_end = time(7, 0)
+        self.tariff_status = "Off"
+        self._tariff_applied_mode = None
+        self._tariff_retry_at = 0.0
         self._saved_enabled = None
         self._saved_morning_enabled = None
         self._ready = False
@@ -64,6 +72,7 @@ class EnergyManager:
         await self._store.async_save({
             "enabled": self.enabled,
             "morning_enabled": self.morning_enabled,
+            "tariff_enabled": self.tariff_enabled,
             "forced": self.forced,
             "exit_requested": self.exit_requested,
             "last_run": self.last_run_date.isoformat() if self.last_run_date else None,
@@ -87,6 +96,92 @@ class EnergyManager:
                 if state.state == "on":
                     await self.hass.services.async_call("automation", "turn_off", {"entity_id": state.entity_id}, blocking=True)
 
+    def _tariff_now(self):
+        from zoneinfo import ZoneInfo
+        return datetime.now(ZoneInfo(self.hass.config.time_zone))
+
+    def _tariff_mode(self, when=None):
+        when = when or self._tariff_now()
+        return "discount" if is_discount_time(when, self.tariff_start, self.tariff_end) else "standard"
+
+    async def apply_tariff(self, now=None, force=False):
+        """Issue a scene command once per tariff change, never every second."""
+        if not self.tariff_enabled:
+            self.tariff_status = "Off"
+            return True
+        if self.forced:
+            self.tariff_status = "Paused: Morning Forced Discharge has priority"
+            self._tariff_applied_mode = None
+            self.notify()
+            return True
+        desired = self._tariff_mode(now)
+        if self._tariff_applied_mode == desired and not force:
+            return True
+        if not force and self.hass.loop.time() < self._tariff_retry_at:
+            return False
+        selected = "discount_scene_entity" if desired == "discount" else "scene_entity"
+        scene = self.setting(selected)
+        state = self.hass.states.get(scene) if scene else None
+        if not scene or not scene.startswith("scene.") or state is None or state.state in ("unavailable", "unknown"):
+            self.tariff_status = (
+                "ERROR: select Self-Consumption Mode (no battery discharge) in Configure"
+                if desired == "discount" else "ERROR: normal Self-Consumption scene unavailable"
+            )
+            self._tariff_retry_at = self.hass.loop.time() + 30
+            self.notify()
+            return False
+        try:
+            await self.hass.services.async_call(
+                "scene", "turn_on", {"entity_id": scene}, blocking=True
+            )
+        except Exception:
+            _LOGGER.exception("Unable to switch Sungrow night tariff mode to %s", desired)
+            self.tariff_status = "ERROR: scene activation failed; retry in 30 seconds"
+            self._tariff_retry_at = self.hass.loop.time() + 30
+            self.notify()
+            return False
+        self._tariff_applied_mode = desired
+        self._tariff_retry_at = 0.0
+        self._resume_scene_pending = False
+        self.tariff_status = (
+            "Discount: no battery discharge scene activated"
+            if desired == "discount" else "Standard: max battery discharge scene activated"
+        )
+        self.notify()
+        return True
+
+    async def set_tariff(self, enabled: bool):
+        """Tariff mode is independently operable, including when Grid Target is OFF."""
+        async with self._tick_lock:
+            if enabled and not self.tariff_enabled:
+                scene = self.setting("discount_scene_entity")
+                state = self.hass.states.get(scene) if scene else None
+                if not scene or not scene.startswith("scene.") or state is None or state.state in ("unavailable", "unknown"):
+                    self.tariff_status = "ERROR: configure the no-battery-discharge scene first"
+                    self.notify()
+                    raise ValueError(self.tariff_status)
+            previous = self.tariff_enabled
+            self.tariff_enabled = enabled
+            await self.persist()
+            if enabled:
+                self._tariff_applied_mode = None
+                await self.apply_tariff(force=True)
+            else:
+                # Restore ordinary self-consumption if tariff mode previously
+                # commanded a scene. Never interrupt Morning Forced Discharge.
+                had_control = previous and self._tariff_applied_mode is not None
+                self._tariff_applied_mode = None
+                self.tariff_status = "Off"
+                if had_control and not self.forced:
+                    await self._activate_self_consumption()
+            self.notify()
+
+    def tariff_schedule_changed(self):
+        self._tariff_applied_mode = None
+        self._tariff_retry_at = 0.0
+        self.tariff_status = "Schedule changed: applying selected mode"
+        self.notify()
+
     async def _activate_self_consumption(self):
         scene = self.setting("scene_entity")
         state = self.hass.states.get(scene) if scene else None
@@ -107,8 +202,12 @@ class EnergyManager:
     async def start(self):
         await self._disable_legacy()
         if not self.forced:
-            # On an explicit START, preserve previous behavior: activate the scene.
-            if not await self._activate_self_consumption():
+            # Respect the active tariff scene rather than resetting it to max
+            # discharge when Grid Target is started during discount hours.
+            if self.tariff_enabled:
+                if not await self.apply_tariff(force=True):
+                    raise RuntimeError("Unable to activate selected Night Tariff scene")
+            elif not await self._activate_self_consumption():
                 raise RuntimeError("Selected Self-Consumption scene is unavailable")
         self.enabled = True
         self._resume_scene_pending = False
@@ -150,9 +249,11 @@ class EnergyManager:
             else:
                 self.status = "Battery Forced Discharge"
                 self.morning_status = "Resumed: monitoring forced discharge after HA restart"
+        elif self.tariff_enabled:
+            # Tariff is independent of Grid Target and resumes after HA restart.
+            await self.apply_tariff(force=True)
+            self.status = "Grid Target active" if self.enabled else "Stopped"
         elif self.enabled:
-            # Do not accidentally reset a running forced-discharge mode.
-            # Resume Self-Consumption when no forced discharge was recorded.
             self._resume_scene_pending = True
             await self._resume_self_consumption()
         else:
@@ -250,7 +351,15 @@ class EnergyManager:
             self.notify()
 
     async def finish_forced(self):
-        scene = self.setting("scene_entity")
+        # The tariff scheduler must decide which self-consumption scene is
+        # correct when Morning Forced Discharge finishes.
+        intended_tariff = self.tariff_enabled
+        target_mode = self._tariff_mode() if intended_tariff else "standard"
+        scene = (
+            self.setting("discount_scene_entity")
+            if intended_tariff and target_mode == "discount"
+            else self.setting("scene_entity")
+        )
         # Keep flag set if command fails, so the next tick retries safely.
         if not scene or not self.hass.states.get(scene):
             self.status = "ERROR: recovery scene unavailable"
@@ -259,6 +368,13 @@ class EnergyManager:
             await self.hass.services.async_call("scene", "turn_on", {"entity_id": scene}, blocking=True)
             self.forced = False
             self.exit_requested = False
+            if intended_tariff:
+                self._tariff_applied_mode = target_mode
+                self.tariff_status = (
+                    "Discount: no battery discharge scene activated"
+                    if target_mode == "discount"
+                    else "Standard: max battery discharge scene activated"
+                )
             await self.persist()
             self.direction, self.started = 0, None
             self.status = "Grid Target active" if self.enabled else "Stopped"
@@ -277,16 +393,15 @@ class EnergyManager:
     async def _tick_impl(self, _now):
         if not self._ready:
             return
-        if not self.enabled:
-            if self.forced:
-                self.exit_requested = True
-                await self.finish_forced()
+        if not self.enabled and self.forced:
+            self.exit_requested = True
+            await self.finish_forced()
             return
-        if self._resume_scene_pending and not self.forced:
+        if self._resume_scene_pending and not self.forced and not self.tariff_enabled:
             await self._resume_self_consumption()
             self.notify()
             return
-        now = datetime.now(self.hass.config.time_zone and __import__("zoneinfo").ZoneInfo(self.hass.config.time_zone))
+        now = self._tariff_now()
         if self.forced:
             soc = numeric(self.hass, self.setting("soc_entity"))
             reserved = numeric(self.hass, self.setting("reserve_soc_entity"))
@@ -306,11 +421,14 @@ class EnergyManager:
             self.notify()
             return
 
+        # Schedule mode switching is independent of the main Grid Target switch.
+        # Morning forced discharge below takes priority if scheduled this minute.
+        # Tariff selection happens after the forced-discharge start check.
         scheduled_minute = self.start_time.strftime("%H:%M")
         scheduled_now = now.hour == self.start_time.hour and now.minute == self.start_time.minute
         attempt_key = (now.date(), scheduled_minute)
         already_completed = self.last_run_date == now.date() and self.last_run_time == scheduled_minute
-        if self.morning_enabled and scheduled_now and not already_completed and self.last_attempt_minute != attempt_key:
+        if self.enabled and self.morning_enabled and scheduled_now and not already_completed and self.last_attempt_minute != attempt_key:
             # Never consume the whole day's scheduled run on a failed attempt.
             # Attempt at most once during each scheduled minute, avoiding
             # hammering the inverter with repeated service calls every second.
@@ -319,6 +437,11 @@ class EnergyManager:
             if self.forced:
                 self.notify()
                 return
+
+        if self.tariff_enabled:
+            await self.apply_tariff(now)
+        if not self.enabled:
+            return
 
         export = numeric(self.hass, self.setting("export_entity"))
         charge_entity = self.setting("charge_entity")
@@ -396,6 +519,10 @@ async def setup_manager(hass, entry):
     )
     manager.enabled = manager._saved_enabled is True
     manager.morning_enabled = manager._saved_morning_enabled is True
+    manager._saved_tariff_enabled = (
+        prior.get("tariff_enabled") if isinstance(prior.get("tariff_enabled"), bool) else None
+    )
+    manager.tariff_enabled = manager._saved_tariff_enabled is True
     manager.forced = prior.get("forced") is True
     manager.exit_requested = prior.get("exit_requested") is True
     # A forced mode must NOT automatically be switched off during setup.
