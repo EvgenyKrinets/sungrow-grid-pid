@@ -365,12 +365,14 @@ class EnergyManager:
         # Exiting Forced Discharge is safety-critical. If the discount scene
         # disappeared while discharging, first restore the standard scene.
         discount_state = self.hass.states.get(scene) if scene else None
+        discount_fallback = False
         if intended_tariff and target_mode == "discount" and (
             not scene or not discount_state
             or discount_state.state in ("unavailable", "unknown")
         ):
             scene = self.setting("scene_entity")
             target_mode = "standard"
+            discount_fallback = True
             self.tariff_status = "WARNING: discount scene unavailable; using normal Self-Consumption"
         # Keep flag set if command fails, so the next tick retries safely.
         recovery_state = self.hass.states.get(scene) if scene else None
@@ -382,8 +384,10 @@ class EnergyManager:
             self.forced = False
             self.exit_requested = False
             if intended_tariff:
-                self._tariff_applied_mode = target_mode
+                self._tariff_applied_mode = None if discount_fallback else target_mode
                 self.tariff_status = (
+                    "WARNING: discount scene missing; standard scene used to exit Forced Discharge"
+                    if discount_fallback else
                     "Discount: no battery discharge scene activated"
                     if target_mode == "discount"
                     else "Standard: max battery discharge scene activated"
