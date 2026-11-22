@@ -11,7 +11,8 @@
           "soc_entity": "Датчик заряда батареи — SOC (%)",
           "reserve_soc_entity": "Резерв заряда Battery Reserved SoC for Backup (%)",
           "forced_scene_entity": "Сцена Battery Forced Discharge",
-          "forced_power_entity": "Регулятор мощности принудительной разрядки (Вт)"
+          "forced_power_entity": "Регулятор мощности принудительной разрядки (Вт)",
+          "discount_scene_entity": "Сцена ночного тарифа — без разрядки батареи"
         },
         "data_description": {
           "export_entity": "Текущая мощность отдачи в сеть в ваттах. Grid Target использует её для определения отклонения от заданного экспорта.",
@@ -20,7 +21,8 @@
           "soc_entity": "Текущий процент заряда батареи. Утренняя разрядка начинается только выше заданного Empty SOC и резервного SOC.",
           "reserve_soc_entity": "Текущий параметр Sungrow Battery Reserved SoC for Backup. При достижении этого процента принудительная разрядка прекращается.",
           "forced_scene_entity": "Сцена, которая включает на инверторе режим Battery Forced Discharge. Используется только для утренней разрядки.",
-          "forced_power_entity": "Числовая сущность Battery forced charge discharge power. Перед включением принудительной разрядки сюда записывается заданная мощность в ваттах."
+          "forced_power_entity": "Числовая сущность Battery forced charge discharge power. Перед включением принудительной разрядки сюда записывается заданная мощность в ваттах.",
+          "discount_scene_entity": "Выберите Self-Consumption Mode (no battery discharge). Она включается в часы ночной скидки; убедитесь, что сцена действительно запрещает разрядку. В остальное время включается обычная сцена."
         }
       },
       "remove": {
@@ -55,7 +57,8 @@
           "soc_entity": "Датчик заряда батареи — SOC (%)",
           "reserve_soc_entity": "Резерв заряда Battery Reserved SoC for Backup (%)",
           "forced_scene_entity": "Сцена Battery Forced Discharge",
-          "forced_power_entity": "Регулятор мощности принудительной разрядки (Вт)"
+          "forced_power_entity": "Регулятор мощности принудительной разрядки (Вт)",
+          "discount_scene_entity": "Сцена ночного тарифа — без разрядки батареи"
         },
         "data_description": {
           "export_entity": "Текущая мощность отдачи в сеть в ваттах. Grid Target использует её для определения отклонения от заданного экспорта.",
@@ -64,7 +67,8 @@
           "soc_entity": "Текущий процент заряда батареи. Утренняя разрядка начинается только выше заданного Empty SOC и резервного SOC.",
           "reserve_soc_entity": "Текущий параметр Sungrow Battery Reserved SoC for Backup. При достижении этого процента принудительная разрядка прекращается.",
           "forced_scene_entity": "Сцена, которая включает на инверторе режим Battery Forced Discharge. Используется только для утренней разрядки.",
-          "forced_power_entity": "Числовая сущность Battery forced charge discharge power. Перед включением принудительной разрядки сюда записывается заданная мощность в ваттах."
+          "forced_power_entity": "Числовая сущность Battery forced charge discharge power. Перед включением принудительной разрядки сюда записывается заданная мощность в ваттах.",
+          "discount_scene_entity": "Выберите Self-Consumption Mode (no battery discharge). Она включается в часы ночной скидки; убедитесь, что сцена действительно запрещает разрядку. В остальное время включается обычная сцена."
         }
       }
     },
