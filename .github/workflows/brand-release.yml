@@ -1,6 +1,6 @@
 name: Build brand and release
 # Generates HA 2026.3+ local branding and publishes semantic release.
-# Release target: dynamic manifest.json version; v4.0.8 scheduled Night Tariff Mode
+# Release target: dynamic manifest.json version; v4.0.9 refreshed Night Tariff documentation and marketing images
 # Night Tariff showcase generation and release trigger
 # Publish version from manifest.json; never retag old releases
 
@@ -64,11 +64,41 @@ jobs:
               im.verify()
           print("Showcase image PNG integrity OK")
           PY
+      - name: Validate current product documentation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from xml.etree import ElementTree as ET
+          from PIL import Image
+          import json
+          root=Path(".")
+          readme=(root/"README.md").read_text()
+          required=[
+            "assets/sungrow-energy-manager-night-tariff.png",
+            "docs/how-it-works.svg", "docs/night-tariff.md",
+            "docs/night-tariff.ru.md", "CHANGELOG.md"
+          ]
+          assert all((root/p).exists() for p in required)
+          assert all(p in readme for p in required)
+          for p in ("docs/how-it-works.svg", "icon.svg", "assets/sem-banner.svg"):
+            ET.parse(root/p)
+          with Image.open(root/"assets/sungrow-energy-manager-night-tariff.png") as im:
+            im.verify()
+          with Image.open(root/"docs/images/sungrow_grid_pid_energy_infographic.png") as im:
+            im.verify()
+          for p in ("strings.json", "translations/en.json", "translations/ru.json", "translations/he.json"):
+            data=json.loads((root/"custom_components/sungrow_grid_pid"/p).read_text())
+            assert "discount_scene_entity" in data["options"]["step"]["init"]["data"]
+          assert "Night Tariff Mode" in readme
+          assert "Grid Target" in readme
+          assert "Morning Discharge" in readme
+          print("Documentation links, translated entity selectors and images validated")
+          PY
       - name: Commit brand files
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add custom_components/sungrow_grid_pid/brand assets/sungrow-energy-manager-night-tariff.png
+          git add custom_components/sungrow_grid_pid/brand assets/sungrow-energy-manager-night-tariff.png docs/images/sungrow_grid_pid_energy_infographic.png
           git diff --cached --quiet || git commit -m "Update SEM brand assets and Night Tariff product showcase"
           git push
       - name: Publish version from manifest.json
@@ -84,7 +114,7 @@ jobs:
             git push origin "${TAG}"
           fi
           RELEASE_TITLE="Sungrow Energy Manager ${TAG}"
-          RELEASE_NOTES="Sungrow Energy Manager v4.0.8 stable release. Adds optional Night Tariff Mode: Sunday-Thursday 23:00-07:00 no-discharge scene, normal self-consumption outside discount, editable times, independent switch, persisted state, and Morning Discharge priority. Verify the selected no-discharge scene actually prevents discharge. See README.md for details."
+          RELEASE_NOTES="Sungrow Energy Manager ${TAG} stable release. Updated product README, full-resolution Night Tariff marketing infographic, 3-mode architecture diagram, English/Russian tariff setup guide and localized configuration text. No inverter-control algorithm changes. Full details: CHANGELOG.md."
           if ! gh release view "${TAG}" >/dev/null 2>&1; then
             gh release create "${TAG}" --title "${RELEASE_TITLE}" --notes "${RELEASE_NOTES}"
           else
