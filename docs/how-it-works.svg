@@ -1,25 +1,53 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1350" viewBox="0 0 900 1350">
-<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#eef8ff"/><stop offset="1" stop-color="#f8fbff"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity=".12"/></filter></defs>
-<rect width="900" height="1350" rx="42" fill="url(#bg)"/>
-<text x="70" y="92" font-family="Arial,sans-serif" font-size="42" font-weight="700" fill="#12233f">Sungrow Grid PID</text>
-<text x="70" y="132" font-family="Arial,sans-serif" font-size="23" fill="#4d6786">Умный контроль экспорта в сеть</text>
-<rect x="70" y="175" width="760" height="120" rx="25" fill="#fff" filter="url(#s)"/>
-<circle cx="112" cy="220" r="10" fill="#22c55e"/><text x="138" y="228" font-family="Arial" font-size="22" font-weight="700" fill="#17233a">PID активен</text>
-<text x="138" y="260" font-family="Arial" font-size="17" fill="#39a66a">Работает нормально</text>
-<rect x="690" y="205" width="82" height="44" rx="22" fill="#28c76f"/><circle cx="749" cy="227" r="17" fill="#fff"/>
-<text x="70" y="350" font-family="Arial" font-size="21" fill="#3b506a">Целевой экспорт</text><text x="620" y="350" font-family="Arial" font-size="34" font-weight="700" fill="#0878d1">15 000 W</text>
-<rect x="70" y="375" width="760" height="10" rx="5" fill="#c8d9e8"/><rect x="70" y="375" width="455" height="10" rx="5" fill="#1298df"/><circle cx="525" cy="380" r="16" fill="#0878d1"/>
-<text x="70" y="415" font-family="Arial" font-size="15" fill="#7890a8">0 W</text><text x="760" y="415" font-family="Arial" font-size="15" fill="#7890a8">25 000 W</text>
-<g font-family="Arial"><rect x="70" y="460" width="360" height="120" rx="24" fill="#fff" filter="url(#s)"/><text x="100" y="500" font-size="17" fill="#6b7f95">Реальный экспорт в сеть</text><text x="100" y="548" font-size="31" font-weight="700" fill="#17233a">15 020 W</text>
-<rect x="470" y="460" width="360" height="120" rx="24" fill="#fff" filter="url(#s)"/><text x="500" y="500" font-size="17" fill="#6b7f95">Команда PID на заряд</text><text x="500" y="548" font-size="31" font-weight="700" fill="#f59e0b">4 800 W</text>
-<rect x="70" y="610" width="360" height="120" rx="24" fill="#fff" filter="url(#s)"/><text x="100" y="650" font-size="17" fill="#6b7f95">Отклонение</text><text x="100" y="698" font-size="31" font-weight="700" fill="#22a765">+20 W</text>
-<rect x="470" y="610" width="360" height="120" rx="24" fill="#fff" filter="url(#s)"/><text x="500" y="650" font-size="17" fill="#6b7f95">Генерация PV</text><text x="500" y="698" font-size="31" font-weight="700" fill="#0878d1">32 400 W</text></g>
-<text x="70" y="795" font-family="Arial" font-size="28" font-weight="700" fill="#17233a">Как это работает?</text>
-<g filter="url(#s)" font-family="Arial"><rect x="70" y="835" width="220" height="155" rx="26" fill="#fff"/><text x="180" y="890" text-anchor="middle" font-size="42">☀️</text><text x="180" y="930" text-anchor="middle" font-size="18" font-weight="700" fill="#17233a">Солнечные панели</text><text x="180" y="965" text-anchor="middle" font-size="24" font-weight="700" fill="#0878d1">32 400 W</text>
-<rect x="340" y="835" width="220" height="155" rx="26" fill="#fff"/><text x="450" y="890" text-anchor="middle" font-size="42">⚡</text><text x="450" y="930" text-anchor="middle" font-size="18" font-weight="700" fill="#17233a">Инвертор Sungrow</text><text x="450" y="960" text-anchor="middle" font-size="15" fill="#6b7f95">гибридный</text>
-<rect x="610" y="835" width="220" height="155" rx="26" fill="#fff"/><text x="720" y="890" text-anchor="middle" font-size="42">🏠</text><text x="720" y="930" text-anchor="middle" font-size="18" font-weight="700" fill="#17233a">Дом</text><text x="720" y="965" text-anchor="middle" font-size="24" font-weight="700" fill="#17233a">10 000 W</text>
-<rect x="205" y="1060" width="220" height="155" rx="26" fill="#fff"/><text x="315" y="1115" text-anchor="middle" font-size="42">🔋</text><text x="315" y="1155" text-anchor="middle" font-size="18" font-weight="700" fill="#17233a">Батарея</text><text x="315" y="1190" text-anchor="middle" font-size="24" font-weight="700" fill="#f59e0b">4 800 W</text>
-<rect x="475" y="1060" width="220" height="155" rx="26" fill="#fff"/><text x="585" y="1115" text-anchor="middle" font-size="42">🔌</text><text x="585" y="1155" text-anchor="middle" font-size="18" font-weight="700" fill="#17233a">Сеть</text><text x="585" y="1190" text-anchor="middle" font-size="24" font-weight="700" fill="#22a765">15 020 W</text></g>
-<g stroke="#36d17d" stroke-width="8" stroke-linecap="round"><path d="M290 912H330"/><path d="M560 912H600"/><path d="M450 990v42"/><path d="M560 990l25 42"/></g>
-<text x="70" y="1290" font-family="Arial" font-size="18" fill="#6b7f95">Status: Running</text><text x="755" y="1290" font-family="Arial" font-size="18" fill="#6b7f95">v1.4.0</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="895" viewBox="0 0 1280 895" role="img" aria-label="Sungrow Energy Manager: Grid Target, Morning Discharge and Night Tariff Mode workflow">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#eff8ff"/><stop offset="1" stop-color="#f2f5ff"/></linearGradient><linearGradient id="navy" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#093959"/><stop offset="1" stop-color="#0e5c73"/></linearGradient></defs>
+<rect width="1280" height="895" rx="28" fill="url(#bg)"/>
+<g font-family="Arial,Helvetica,sans-serif">
+<rect x="42" y="38" width="1196" height="115" rx="25" fill="url(#navy)"/>
+<text x="75" y="91" font-weight="700" font-size="41" fill="#fff">Sungrow Energy Manager</text>
+<text x="77" y="125" font-size="21" fill="#b9ebef">Three coordinated modes  |  Home Assistant</text>
+<rect x="42" y="190" width="378" height="408" rx="25" fill="#fff" stroke="#d4e8f4" stroke-width="2"/>
+<rect x="451" y="190" width="378" height="408" rx="25" fill="#fff" stroke="#d4e8f4" stroke-width="2"/>
+<rect x="860" y="190" width="378" height="408" rx="25" fill="#fff" stroke="#d4e8f4" stroke-width="2"/>
+<rect x="61" y="209" width="340" height="60" rx="17" fill="#eaf4ff"/>
+<rect x="470" y="209" width="340" height="60" rx="17" fill="#e7fbf1"/>
+<rect x="879" y="209" width="340" height="60" rx="17" fill="#ebefff"/>
+<text x="83" y="248" font-size="25" font-weight="700" fill="#1265a9">01  Grid Target</text>
+<text x="489" y="248" font-size="24" font-weight="700" fill="#17764e">02  Morning Discharge</text>
+<text x="901" y="248" font-size="25" font-weight="700" fill="#5056ac">03  Night Tariff</text>
+<text x="72" y="309" font-size="19" fill="#334960">Export Target SP +/- Dead Band</text>
+<rect x="82" y="330" width="300" height="43" rx="13" fill="#f0f7ff"/>
+<text x="232" y="358" text-anchor="middle" font-size="18" fill="#1d5ba4">Deviation persists?</text>
+<path d="M232 376v46" stroke="#4689cc" stroke-width="4" stroke-linecap="round"/>
+<path d="M223 411l9 12 9-12" stroke="#4689cc" fill="none" stroke-width="4"/>
+<rect x="82" y="426" width="300" height="65" rx="14" fill="#e5f2fe"/>
+<text x="232" y="450" text-anchor="middle" font-size="19" font-weight="700" fill="#164e91">Wait Export Delay Time</text>
+<text x="232" y="476" text-anchor="middle" font-size="17" fill="#396d9b">Then adjust Charge Gain SP</text>
+<text x="73" y="541" font-size="17" fill="#45627c">Both directions use the same delay.</text>
+<text x="73" y="566" font-size="17" fill="#45627c">Stop at charge min/max limits.</text>
+<text x="481" y="312" font-size="18" fill="#334960">Scheduled daily start, if enabled</text>
+<rect x="490" y="330" width="300" height="60" rx="13" fill="#e8faf0"/>
+<text x="640" y="356" font-size="18" text-anchor="middle" fill="#176e4d">SOC above Empty SOC SP</text>
+<text x="640" y="379" font-size="18" text-anchor="middle" fill="#176e4d">and above backup reserve?</text>
+<path d="M640 392v30" stroke="#35aa75" stroke-width="4"/>
+<rect x="490" y="426" width="300" height="65" rx="13" fill="#dff7e9"/>
+<text x="640" y="451" text-anchor="middle" font-size="19" font-weight="700" fill="#136b48">Battery Forced Discharge</text>
+<text x="640" y="476" text-anchor="middle" font-size="16" fill="#39745c">Configured discharge power</text>
+<text x="482" y="541" font-size="17" fill="#45627c">Stops at reserved backup SOC.</text>
+<text x="482" y="566" font-size="17" fill="#45627c">Takes priority over Night Tariff.</text>
+<text x="891" y="312" font-size="18" fill="#334960">Sunday-Thursday starting nights</text>
+<rect x="899" y="330" width="300" height="61" rx="13" fill="#e8edff"/>
+<text x="1049" y="356" text-anchor="middle" font-size="20" font-weight="700" fill="#3f55ad">23:00 to 07:00</text>
+<text x="1049" y="378" text-anchor="middle" font-size="16" fill="#5365a4">Start and end time editable</text>
+<path d="M1049 392v30" stroke="#6b7ad7" stroke-width="4"/>
+<rect x="899" y="426" width="300" height="65" rx="13" fill="#e1e8ff"/>
+<text x="1049" y="451" text-anchor="middle" font-size="19" font-weight="700" fill="#3c54a3">During discount: use grid</text>
+<text x="1049" y="476" text-anchor="middle" font-size="16" fill="#5266ab">No-battery-discharge scene</text>
+<text x="890" y="541" font-size="17" fill="#45627c">Outside: max discharge scene.</text>
+<text x="890" y="566" font-size="17" fill="#45627c">Independent ON/OFF + persistence.</text>
+<rect x="42" y="633" width="1196" height="158" rx="25" fill="#fff" stroke="#d4e8f4" stroke-width="2"/>
+<text x="72" y="676" font-size="25" font-weight="700" fill="#14334c">Priority and safety</text>
+<text x="72" y="710" font-size="19" fill="#36536a">Forced Discharge  &gt;  Night Tariff scene selection  &gt;  default Self-Consumption scene.</text>
+<text x="72" y="739" font-size="19" fill="#36536a">Scene commands are issued on mode transitions, not continuously every second.</text>
+<text x="72" y="768" font-size="18" font-weight="700" fill="#bd6820">Verify that the chosen no-discharge scene really stops battery discharge on your inverter.</text>
+<text x="48" y="848" font-size="17" fill="#698197">Configuration examples only. Actual inverter and BMS protections remain authoritative.</text>
+</g></svg>
