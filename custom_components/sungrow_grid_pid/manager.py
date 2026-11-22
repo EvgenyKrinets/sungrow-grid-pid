@@ -196,7 +196,7 @@ class EnergyManager:
             _LOGGER.exception("SEM could not restore Self-Consumption scene")
             self.status = "ERROR: Self-Consumption scene failed"
             return False
-        self.status = "Grid Target active"
+        self.status = "Grid Target active" if self.enabled else "Stopped"
         return True
 
     async def start(self):
@@ -248,6 +248,8 @@ class EnergyManager:
                 # Keep retrying the fallback until the scene can be called.
             else:
                 self.status = "Battery Forced Discharge"
+                if self.tariff_enabled:
+                    self.tariff_status = "Paused: Morning Forced Discharge has priority"
                 self.morning_status = "Resumed: monitoring forced discharge after HA restart"
         elif self.tariff_enabled:
             # Tariff is independent of Grid Target and resumes after HA restart.
