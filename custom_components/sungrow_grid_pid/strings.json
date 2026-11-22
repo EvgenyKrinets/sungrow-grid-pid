@@ -11,7 +11,8 @@
           "soc_entity": "Battery state of charge sensor (SOC, %)",
           "reserve_soc_entity": "Battery Reserved SoC for Backup entity (%)",
           "forced_scene_entity": "Battery Forced Discharge scene",
-          "forced_power_entity": "Battery forced charge/discharge power control (W)"
+          "forced_power_entity": "Battery forced charge/discharge power control (W)",
+          "discount_scene_entity": "Night tariff — no battery discharge scene"
         },
         "data_description": {
           "export_entity": "Live power being exported to the grid, in watts. Grid Target uses this value to decide when to change the battery charging limit.",
@@ -20,7 +21,8 @@
           "soc_entity": "Current battery charge percentage. Morning discharge starts only when SOC is above the configured Empty SOC threshold and backup reserve.",
           "reserve_soc_entity": "Actual Sungrow Battery Reserved SoC for Backup value. The controller stops forced discharge when the battery reaches this percentage.",
           "forced_scene_entity": "Scene that puts the inverter into Battery Forced Discharge mode. Only used by the optional morning discharge schedule.",
-          "forced_power_entity": "Writable number entity for Battery forced charge discharge power. The controller sets this value before activating the forced discharge scene."
+          "forced_power_entity": "Writable number entity for Battery forced charge discharge power. The controller sets this value before activating the forced discharge scene.",
+          "discount_scene_entity": "Select Self-Consumption Mode (no battery discharge). This scene is activated during configured discounted night hours; verify it really prevents battery discharge. The normal scene is used outside the discount."
         }
       },
       "remove": {
@@ -55,7 +57,8 @@
           "soc_entity": "Battery state of charge sensor (SOC, %)",
           "reserve_soc_entity": "Battery Reserved SoC for Backup entity (%)",
           "forced_scene_entity": "Battery Forced Discharge scene",
-          "forced_power_entity": "Battery forced charge/discharge power control (W)"
+          "forced_power_entity": "Battery forced charge/discharge power control (W)",
+          "discount_scene_entity": "Night tariff — no battery discharge scene"
         },
         "data_description": {
           "export_entity": "Live power being exported to the grid, in watts. Grid Target uses this value to decide when to change the battery charging limit.",
@@ -64,7 +67,8 @@
           "soc_entity": "Current battery charge percentage. Morning discharge starts only when SOC is above the configured Empty SOC threshold and backup reserve.",
           "reserve_soc_entity": "Actual Sungrow Battery Reserved SoC for Backup value. The controller stops forced discharge when the battery reaches this percentage.",
           "forced_scene_entity": "Scene that puts the inverter into Battery Forced Discharge mode. Only used by the optional morning discharge schedule.",
-          "forced_power_entity": "Writable number entity for Battery forced charge discharge power. The controller sets this value before activating the forced discharge scene."
+          "forced_power_entity": "Writable number entity for Battery forced charge discharge power. The controller sets this value before activating the forced discharge scene.",
+          "discount_scene_entity": "Select Self-Consumption Mode (no battery discharge). This scene is activated during configured discounted night hours; verify it really prevents battery discharge. The normal scene is used outside the discount."
         }
       }
     },
