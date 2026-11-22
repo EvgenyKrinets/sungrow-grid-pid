@@ -170,7 +170,7 @@ class EnergyManager:
             if enabled and not self.tariff_enabled:
                 scene = self.setting("discount_scene_entity")
                 state = self.hass.states.get(scene) if scene else None
-                if not scene or not scene.startswith("scene.") or state is None or state.state in ("unavailable", "unknown"):
+                if not scene or not scene.startswith("scene.") or state is None or state.state == "unavailable":
                     self.tariff_status = "ERROR: no unique available Self-Consumption Mode (no battery discharge) scene found"
                     self.notify()
                     raise ValueError(self.tariff_status)
@@ -181,13 +181,18 @@ class EnergyManager:
                 self._tariff_applied_mode = None
                 await self.apply_tariff(force=True)
             else:
-                # Restore ordinary self-consumption if tariff mode previously
-                # commanded a scene. Never interrupt Morning Forced Discharge.
-                had_control = previous and self._tariff_applied_mode is not None
+                # Explicit OFF always requests the normal max-discharge
+                # self-consumption scene, even if the prior tariff scene was
+                # never successfully applied (e.g. after a HA restart).
+                # Morning Forced Discharge remains higher priority.
                 self._tariff_applied_mode = None
                 self.tariff_status = "Off"
-                if had_control and not self.forced:
-                    await self._activate_self_consumption()
+                if not self.forced:
+                    if not await self._activate_self_consumption():
+                        self._resume_scene_pending = True
+                        self.tariff_status = "ERROR: normal self-consumption scene unavailable; retry pending"
+                    else:
+                        self.tariff_status = "Off: max battery discharge scene activated"
             self.notify()
 
     async def set_tariff_day(self, day: int, enabled: bool):
