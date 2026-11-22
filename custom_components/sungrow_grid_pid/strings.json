@@ -3,11 +3,11 @@
     "step": {
       "user": {
         "title": "Sungrow Energy Manager settings",
-        "description": "Choose the Sungrow entities used for grid export control and optional morning discharge. Optional discharge fields must all be configured before that feature can run.",
+        "description": "Choose Sungrow entities for Grid Target export control, optional Morning Discharge, and Night Tariff scene switching. Morning Discharge requires all four related entities; Night Tariff requires the no-discharge scene.",
         "data": {
           "export_entity": "Grid export power sensor",
           "charge_entity": "Maximum battery charge power control",
-          "scene_entity": "Self-Consumption Mode scene (start and return)",
+          "scene_entity": "Self-Consumption Mode (max battery discharge) — normal scene",
           "soc_entity": "Battery state of charge sensor (SOC, %)",
           "reserve_soc_entity": "Battery Reserved SoC for Backup entity (%)",
           "forced_scene_entity": "Battery Forced Discharge scene",
@@ -17,7 +17,7 @@
         "data_description": {
           "export_entity": "Live power being exported to the grid, in watts. Grid Target uses this value to decide when to change the battery charging limit.",
           "charge_entity": "Writable number entity that sets the battery charging power limit, in watts. Grid Target adjusts it in steps after the configured delay.",
-          "scene_entity": "Scene to activate when starting Grid Target and when morning forced discharge ends. Choose Self-Consumption Mode (max battery discharge).",
+          "scene_entity": "Activate Self-Consumption Mode (max battery discharge) when starting Grid Target, when Morning Discharge ends outside the discount, and when Night Tariff is outside discounted hours.",
           "soc_entity": "Current battery charge percentage. Morning discharge starts only when SOC is above the configured Empty SOC threshold and backup reserve.",
           "reserve_soc_entity": "Actual Sungrow Battery Reserved SoC for Backup value. The controller stops forced discharge when the battery reaches this percentage.",
           "forced_scene_entity": "Scene that puts the inverter into Battery Forced Discharge mode. Only used by the optional morning discharge schedule.",
@@ -26,16 +26,16 @@
         }
       },
       "remove": {
-        "title": "Remove Sungrow Grid PID",
-        "description": "An existing Sungrow Grid PID entry was found, even if it is hidden from the integrations list. Confirm removal of the entry and its entities. Other integrations will not be affected.",
+        "title": "Remove Sungrow Energy Manager",
+        "description": "An existing Sungrow Energy Manager configuration entry was found, even if it is hidden from the integration list. Confirm removal of the entry and its entities. Other integrations will not be affected.",
         "data": {
-          "confirm": "Yes, remove Sungrow Grid PID"
+          "confirm": "Yes, remove Sungrow Energy Manager"
         }
       }
     },
     "abort": {
-      "single_instance_allowed": "Sungrow Grid PID is already installed.",
-      "removed_successfully": "Sungrow Grid PID entry removed. You can uninstall its files through HACS.",
+      "single_instance_allowed": "Sungrow Energy Manager is already installed.",
+      "removed_successfully": "Sungrow Energy Manager entry removed. You can uninstall its files through HACS.",
       "removal_cancelled": "Removal cancelled."
     },
     "error": {
@@ -49,11 +49,11 @@
     "step": {
       "init": {
         "title": "Sungrow Energy Manager settings",
-        "description": "Choose the Sungrow entities used for grid export control and optional morning discharge. Optional discharge fields must all be configured before that feature can run.",
+        "description": "Choose Sungrow entities for Grid Target export control, optional Morning Discharge, and Night Tariff scene switching. Morning Discharge requires all four related entities; Night Tariff requires the no-discharge scene.",
         "data": {
           "export_entity": "Grid export power sensor",
           "charge_entity": "Maximum battery charge power control",
-          "scene_entity": "Self-Consumption Mode scene (start and return)",
+          "scene_entity": "Self-Consumption Mode (max battery discharge) — normal scene",
           "soc_entity": "Battery state of charge sensor (SOC, %)",
           "reserve_soc_entity": "Battery Reserved SoC for Backup entity (%)",
           "forced_scene_entity": "Battery Forced Discharge scene",
@@ -63,7 +63,7 @@
         "data_description": {
           "export_entity": "Live power being exported to the grid, in watts. Grid Target uses this value to decide when to change the battery charging limit.",
           "charge_entity": "Writable number entity that sets the battery charging power limit, in watts. Grid Target adjusts it in steps after the configured delay.",
-          "scene_entity": "Scene to activate when starting Grid Target and when morning forced discharge ends. Choose Self-Consumption Mode (max battery discharge).",
+          "scene_entity": "Activate Self-Consumption Mode (max battery discharge) when starting Grid Target, when Morning Discharge ends outside the discount, and when Night Tariff is outside discounted hours.",
           "soc_entity": "Current battery charge percentage. Morning discharge starts only when SOC is above the configured Empty SOC threshold and backup reserve.",
           "reserve_soc_entity": "Actual Sungrow Battery Reserved SoC for Backup value. The controller stops forced discharge when the battery reaches this percentage.",
           "forced_scene_entity": "Scene that puts the inverter into Battery Forced Discharge mode. Only used by the optional morning discharge schedule.",
