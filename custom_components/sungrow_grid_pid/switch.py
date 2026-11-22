@@ -78,6 +78,33 @@ class ManagerSwitch(SwitchEntity, RestoreEntity):
         self.async_write_ha_state()
 
 
+class TariffDaySwitch(SwitchEntity):
+    """Choose which starting nights receive the discounted tariff."""
+    _attr_should_poll = False
+    _attr_has_entity_name = False
+    _attr_icon = "mdi:calendar-check"
+
+    def __init__(self, manager, day):
+        self.manager, self.day = manager, day
+        names = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+        self._attr_name = f"SEM Discount {names[day]}"
+        self._attr_unique_id = f"sungrow_energy_manager_discount_day_{day}"
+        self.entity_id = f"switch.sem_discount_{names[day].lower()}"
+
+    @property
+    def is_on(self):
+        return self.day in self.manager.tariff_days
+
+    async def async_turn_on(self, **kwargs):
+        await self.manager.set_tariff_day(self.day, True)
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs):
+        await self.manager.set_tariff_day(self.day, False)
+        self.async_write_ha_state()
+
+
 async def async_setup_entry(hass, entry, async_add_entities):
     manager = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([ManagerSwitch(manager), ManagerSwitch(manager, True), ManagerSwitch(manager, tariff=True)])
+    async_add_entities([ManagerSwitch(manager), ManagerSwitch(manager, True), ManagerSwitch(manager, tariff=True),
+                        *(TariffDaySwitch(manager, day) for day in range(7))])
