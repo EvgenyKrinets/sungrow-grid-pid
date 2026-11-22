@@ -16,6 +16,7 @@ DEFAULTS = {
     "reserve_soc_entity": "",
     "forced_scene_entity": "",
     "forced_power_entity": "",
+    "discount_scene_entity": "",
 }
 
 
@@ -26,6 +27,7 @@ FRIENDLY_DEFAULTS = {
     "reserve_soc_entity": (("number", "sensor"), "Battery Reserved SoC for Backup"),
     "forced_scene_entity": ("scene", "Battery Forced Discharge"),
     "forced_power_entity": ("number", "Battery forced charge discharge power"),
+    "discount_scene_entity": ("scene", "Self-Consumption Mode (no battery discharge)"),
 }
 
 
@@ -59,6 +61,7 @@ def schema(values, hass):
         ("reserve_soc_entity", ["number", "sensor"]),
         ("forced_scene_entity", "scene"),
         ("forced_power_entity", "number"),
+        ("discount_scene_entity", "scene"),
     ):
         suggestion = _existing_suggestion(hass, key, values)
         marker = vol.Optional(
@@ -98,7 +101,7 @@ def verify(hass, values):
                     errors[key] = "charge_range"
             except (ValueError, TypeError):
                 errors[key] = "charge_range"
-    for key, domain in (("soc_entity", "sensor"), ("reserve_soc_entity", ("number", "sensor")), ("forced_scene_entity", "scene"), ("forced_power_entity", "number")):
+    for key, domain in (("soc_entity", "sensor"), ("reserve_soc_entity", ("number", "sensor")), ("forced_scene_entity", "scene"), ("forced_power_entity", "number"), ("discount_scene_entity", "scene")):
         value = values.get(key)
         if value and (not value.startswith(tuple((domain,) if isinstance(domain,str) else domain)[0] + ".") if isinstance(domain,str) else not any(value.startswith(d+".") for d in domain)):
             errors[key] = "entity_not_found"
