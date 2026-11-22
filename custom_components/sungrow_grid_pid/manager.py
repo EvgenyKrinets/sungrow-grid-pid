@@ -37,6 +37,7 @@ class EnergyManager:
         self._saved_tariff_enabled = None
         self.tariff_start = time(23, 0)
         self.tariff_end = time(7, 0)
+        self.tariff_days = set((6, 0, 1, 2, 3))
         self.tariff_status = "Off"
         self._tariff_applied_mode = None
         self._tariff_retry_at = 0.0
@@ -73,6 +74,7 @@ class EnergyManager:
             "enabled": self.enabled,
             "morning_enabled": self.morning_enabled,
             "tariff_enabled": self.tariff_enabled,
+            "tariff_days": sorted(self.tariff_days),
             "forced": self.forced,
             "exit_requested": self.exit_requested,
             "last_run": self.last_run_date.isoformat() if self.last_run_date else None,
@@ -102,7 +104,7 @@ class EnergyManager:
 
     def _tariff_mode(self, when=None):
         when = when or self._tariff_now()
-        return "discount" if is_discount_time(when, self.tariff_start, self.tariff_end) else "standard"
+        return "discount" if is_discount_time(when, self.tariff_start, self.tariff_end, self.tariff_days) else "standard"
 
     async def apply_tariff(self, now=None, force=False):
         """Issue a scene command once per tariff change, never every second."""
@@ -175,6 +177,17 @@ class EnergyManager:
                 if had_control and not self.forced:
                     await self._activate_self_consumption()
             self.notify()
+
+    async def set_tariff_day(self, day: int, enabled: bool):
+        """Persist weekday selections and apply tariff schedule at next tick."""
+        if not 0 <= day <= 6:
+            raise ValueError("Invalid weekday")
+        if enabled:
+            self.tariff_days.add(day)
+        else:
+            self.tariff_days.discard(day)
+        self.tariff_schedule_changed()
+        await self.persist()
 
     def tariff_schedule_changed(self):
         self._tariff_applied_mode = None
@@ -540,6 +553,9 @@ async def setup_manager(hass, entry):
         prior.get("tariff_enabled") if isinstance(prior.get("tariff_enabled"), bool) else None
     )
     manager.tariff_enabled = manager._saved_tariff_enabled is True
+    saved_days = prior.get("tariff_days")
+    if isinstance(saved_days, list) and all(type(day) is int and 0 <= day <= 6 for day in saved_days):
+        manager.tariff_days = set(saved_days)
     manager.forced = prior.get("forced") is True
     manager.exit_requested = prior.get("exit_requested") is True
     # A forced mode must NOT automatically be switched off during setup.
