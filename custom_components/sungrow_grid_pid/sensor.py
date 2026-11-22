@@ -104,6 +104,29 @@ class MorningDischargeStatusSensor(SensorEntity):
         self.async_write_ha_state()
 
 
+class NightTariffStatusSensor(SensorEntity):
+    _attr_name = "SEM Night Tariff Status"
+    _attr_unique_id = "sungrow_energy_manager_tariff_status"
+    _attr_should_poll = False
+    _attr_icon = "mdi:transmission-tower"
+
+    def __init__(self, manager):
+        self.manager = manager
+        self.entity_id = "sensor.sem_night_tariff_status"
+
+    @property
+    def native_value(self):
+        return self.manager.tariff_status
+
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        self.manager.add_listener(self._notify)
+
+    @callback
+    def _notify(self):
+        self.async_write_ha_state()
+
+
 async def async_setup_entry(hass, entry, async_add_entities) -> None:
     charge = entry.options.get("charge_entity", entry.data.get("charge_entity", "number.battery_max_charge_power"))
     from .const import DOMAIN
@@ -111,4 +134,5 @@ async def async_setup_entry(hass, entry, async_add_entities) -> None:
         ChargeHistorySensor(hass, charge),
         ManagerStatusSensor(hass.data[DOMAIN][entry.entry_id]),
         MorningDischargeStatusSensor(hass.data[DOMAIN][entry.entry_id]),
+        NightTariffStatusSensor(hass.data[DOMAIN][entry.entry_id]),
     ])
