@@ -158,7 +158,7 @@ class SungrowGridPidCard extends HTMLElement {
     // without requiring the browser to fire a blur/change event.
     if(!this._pickerDismissListenerAdded){
       this.shadowRoot.addEventListener("pointerdown",e=>{
-        if(e.target!==this.shadowRoot.querySelector("[data-time]")){
+        if(!e.target || !e.target.matches || !e.target.matches("[data-time]")){
           this._timePickerEngaged=false;
         }
       });
