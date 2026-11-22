@@ -1,6 +1,6 @@
 name: Build brand and release
 # Generates HA 2026.3+ local branding and publishes semantic release.
-# Release target: dynamic manifest.json version; v4.0.7 stable time picker
+# Release target: dynamic manifest.json version; v4.0.8 scheduled Night Tariff Mode
 # Visual dashboard release trigger
 # Publish version from manifest.json; never retag old releases
 
@@ -73,7 +73,7 @@ jobs:
             git push origin "${TAG}"
           fi
           RELEASE_TITLE="Sungrow Energy Manager ${TAG}"
-          RELEASE_NOTES="Sungrow Energy Manager v4.0.7 stable release. Fixes the Start Time picker disappearing during frequent Home Assistant state updates. Keeps live stats refreshing without rebuilding the card. No battery control algorithm changes. See README.md for details."
+          RELEASE_NOTES="Sungrow Energy Manager v4.0.8 stable release. Adds optional Night Tariff Mode: Sunday-Thursday 23:00-07:00 no-discharge scene, normal self-consumption outside discount, editable times, independent switch, persisted state, and Morning Discharge priority. Verify the selected no-discharge scene actually prevents discharge. See README.md for details."
           if ! gh release view "${TAG}" >/dev/null 2>&1; then
             gh release create "${TAG}" --title "${RELEASE_TITLE}" --notes "${RELEASE_NOTES}"
           else
