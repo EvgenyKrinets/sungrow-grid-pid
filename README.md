@@ -25,6 +25,24 @@ A Home Assistant custom integration for stepped solar export control and schedul
 
 This is a **Home Assistant control integration**, not an official Sungrow product. It uses entities already supplied by your Sungrow/Modbus integration and does not replace the inverter's safety functions, BMS protections, or certified grid-export limit.
 
+## v4.0.8 — Night Tariff Mode
+
+**Automatically use the cheaper night tariff without discharging the battery.** Enable the independent **Night Tariff Mode** switch on the SEM dashboard.
+
+- **Default discount:** 23:00–07:00, Sunday–Thursday *starting nights* (Home Assistant local time). A Thursday night continues through Friday 07:00; Friday and Saturday nights are excluded.
+- During discount SEM activates the selected **Self-Consumption Mode (no battery discharge)** scene. Outside discount it activates the usual **Self-Consumption Mode (max battery discharge)** scene.
+- The tariff has its **own ON/OFF switch** and works even if Grid Target is STOP. Its state survives Home Assistant restarts.
+- Edit **Discount Start** and **Discount End** directly on the dashboard using native Home Assistant time entities. Defaults: 23:00 and 07:00.
+- **One command per transition**, not once a second. If an entity/service is temporarily unavailable the controller reports a diagnostic and retries.
+- **Morning Forced Discharge takes priority** when active. After its reserved SOC threshold is reached, SEM returns to the tariff-appropriate scene, not blindly to max-discharge mode.
+- Disabling Night Tariff returns to normal Self-Consumption when SEM has previously applied a tariff scene, except when Forced Discharge is running.
+- An additional integration option selects **Night tariff — no battery discharge scene** (automatically suggested when a unique scene with that friendly name exists).
+- New entities: `switch.sem_night_tariff`, `time.sem_tariff_start`, `time.sem_tariff_end`, `sensor.sem_night_tariff_status`.
+
+**Important hardware verification:** In the example screenshot, the scene called **Self-Consumption Mode (no battery discharge)** displays **Battery max discharge power = 25,000 W**. That value alone does **not** disable battery discharge. Check that activating the scene actually makes the home draw energy from the grid while PV is insufficient. Adjust the scene in Sungrow/Home Assistant if necessary. SEM switches scenes; it cannot guarantee the effect of a misconfigured scene.
+
+**Tariff calendar assumption:** The selected nights begin Sunday, Monday, Tuesday, Wednesday and Thursday. The Thursday 23:00 → Friday 07:00 window **is included**; Friday 23:00 and Saturday 23:00 starts are excluded. Confirm this matches your utility's contract. No special public-holiday calendar is included.
+
 ## v4.0.7 — Reliable Start Time picker
 
 - Fix the **Morning Discharge → Start Time** clock popup sometimes disappearing while Home Assistant updates live export power and battery status.
@@ -58,6 +76,7 @@ This is a **Home Assistant control integration**, not an official Sungrow produc
 | 🔋 **Charge Gain** | Apply a defined charging-power step, respecting number-entity min/max/step |
 | ⛅ **Cloud-tolerant operation** | Short changes in solar production do not immediately rewrite the charging limit |
 | 🌅 **Morning Discharge** | Optionally schedule one forced-discharge window each day |
+| 🌙 **Night Tariff Mode** | Schedule no-discharge and max-discharge scenes for discounted nights, independent of Grid Target |
 | 🛡️ **Backup SOC protection** | Stop forced discharge at the selected Sungrow backup reserve |
 | ⚡ **Live discharge power** | Change the forced discharge setpoint while discharge is active |
 | 📱 **Native dashboard** | Control setpoints, switches and start time without editing YAML |
@@ -138,6 +157,7 @@ During installation SEM offers Home Assistant entity selectors. For the familiar
 | Backup reserve | **Battery Reserved SoC for Backup** | Morning Discharge |
 | Forced discharge scene | **Battery Forced Discharge** | Morning Discharge |
 | Forced power number | **Battery forced charge discharge power** | Morning Discharge |
+| Discount scene | **Self-Consumption Mode (no battery discharge)** | Night Tariff Mode |
 
 The three basic entities have default entity IDs used by prior versions: `sensor.export_power`, `number.battery_max_charge_power` and `scene.self_consumption_mode_max_battery_discharge`. The four morning-discharge selections are discovered by **friendly name** when the corresponding entities exist. If an entity is missing or there is more than one match, select it manually.
 
@@ -158,13 +178,17 @@ The three basic entities have default entity IDs used by prior versions: `sensor
 | `number.sem_discharge_power` | Forced discharge power limit (W) |
 | `sensor.sem_manager_status` | Grid Target status / adjustment countdown |
 | `sensor.sem_morning_discharge_status` | Discharge outcomes and diagnostic messages |
+| `switch.sem_night_tariff` | Enable or disable night tariff schedule |
+| `time.sem_tariff_start` | Discount starting time (default 23:00) |
+| `time.sem_tariff_end` | Discount end time (default 07:00) |
+| `sensor.sem_night_tariff_status` | Last tariff scene command and diagnostic |
 | `sensor.sungrow_pid_charge_history` | Sampled charge command history |
 
 Entity IDs may differ if Home Assistant has created duplicates; always confirm in **Developer Tools → States**.
 
 ## Dashboard experience
 
-The dashboard provides an at-a-glance view of **Grid Export**, **Battery Charge SP**, control state, all export settings, the morning schedule and a persistent morning discharge diagnostic. SP inputs display whole watts, seconds and percentage values, with explanatory text beside each control.
+The dashboard provides an at-a-glance view of **Grid Export**, **Battery Charge SP**, control state, all export settings, the morning schedule, the independent night-tariff switch and adjustable start/end times, plus persistent diagnostics. SP inputs display whole watts, seconds and percentage values, with explanatory text beside each control.
 
 The installed dashboard is reachable at `/sungrow-grid-pid` for compatibility with earlier releases. The original PID automation is disabled during the transition so it cannot compete for control with the new manager. Existing user-owned YAML and helper entities are preserved.
 
