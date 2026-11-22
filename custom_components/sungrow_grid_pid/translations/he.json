@@ -11,7 +11,8 @@
           "soc_entity": "חיישן רמת טעינת הסוללה SOC (%)",
           "reserve_soc_entity": "רזרבת סוללה Battery Reserved SoC for Backup (%)",
           "forced_scene_entity": "סצנת Battery Forced Discharge",
-          "forced_power_entity": "בקר הספק פריקה מאולצת (W)"
+          "forced_power_entity": "בקר הספק פריקה מאולצת (W)",
+          "discount_scene_entity": "סצנת תעריף לילה — ללא פריקת סוללה"
         },
         "data_description": {
           "export_entity": "הספק הייצוא בפועל לרשת בוואט. בקר Grid Target משתמש בנתון זה כדי לזהות חריגה מהיעד.",
@@ -20,7 +21,8 @@
           "soc_entity": "אחוז הטעינה הנוכחי. פריקת הבוקר תתחיל רק כאשר SOC גבוה מסף Empty SOC ומרזרבת הגיבוי.",
           "reserve_soc_entity": "ערך Battery Reserved SoC for Backup של Sungrow. הפריקה המאולצת מסתיימת כאשר ה-SOC מגיע לערך זה.",
           "forced_scene_entity": "סצנה המפעילה בממיר את מצב Battery Forced Discharge. נדרשת לפריקת הבוקר בלבד.",
-          "forced_power_entity": "ישות מספרית לכתיבת Battery forced charge discharge power. לפני התחלת הפריקה הבקר מגדיר בה את ההספק בוואט."
+          "forced_power_entity": "ישות מספרית לכתיבת Battery forced charge discharge power. לפני התחלת הפריקה הבקר מגדיר בה את ההספק בוואט.",
+          "discount_scene_entity": "בחר Self-Consumption Mode (no battery discharge). הסצנה מופעלת בשעות ההנחה בלילה; יש לוודא שהיא באמת מונעת פריקת סוללה. מחוץ לחלון ההנחה מופעלת הסצנה הרגילה."
         }
       },
       "remove": {
@@ -55,7 +57,8 @@
           "soc_entity": "חיישן רמת טעינת הסוללה SOC (%)",
           "reserve_soc_entity": "רזרבת סוללה Battery Reserved SoC for Backup (%)",
           "forced_scene_entity": "סצנת Battery Forced Discharge",
-          "forced_power_entity": "בקר הספק פריקה מאולצת (W)"
+          "forced_power_entity": "בקר הספק פריקה מאולצת (W)",
+          "discount_scene_entity": "סצנת תעריף לילה — ללא פריקת סוללה"
         },
         "data_description": {
           "export_entity": "הספק הייצוא בפועל לרשת בוואט. בקר Grid Target משתמש בנתון זה כדי לזהות חריגה מהיעד.",
@@ -64,7 +67,8 @@
           "soc_entity": "אחוז הטעינה הנוכחי. פריקת הבוקר תתחיל רק כאשר SOC גבוה מסף Empty SOC ומרזרבת הגיבוי.",
           "reserve_soc_entity": "ערך Battery Reserved SoC for Backup של Sungrow. הפריקה המאולצת מסתיימת כאשר ה-SOC מגיע לערך זה.",
           "forced_scene_entity": "סצנה המפעילה בממיר את מצב Battery Forced Discharge. נדרשת לפריקת הבוקר בלבד.",
-          "forced_power_entity": "ישות מספרית לכתיבת Battery forced charge discharge power. לפני התחלת הפריקה הבקר מגדיר בה את ההספק בוואט."
+          "forced_power_entity": "ישות מספרית לכתיבת Battery forced charge discharge power. לפני התחלת הפריקה הבקר מגדיר בה את ההספק בוואט.",
+          "discount_scene_entity": "בחר Self-Consumption Mode (no battery discharge). הסצנה מופעלת בשעות ההנחה בלילה; יש לוודא שהיא באמת מונעת פריקת סוללה. מחוץ לחלון ההנחה מופעלת הסצנה הרגילה."
         }
       }
     },
