@@ -1,4 +1,4 @@
-const CARD_VERSION="4.0.8";
+const CARD_VERSION="4.0.9";
 class SungrowGridPidCard extends HTMLElement {
   constructor(){super();this.attachShadow({mode:"open"});this._config={};this._editing=null;this._timePickerEngaged=false;this._pendingTimeValue=null;}
   setConfig(v){
