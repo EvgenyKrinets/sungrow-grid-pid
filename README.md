@@ -112,7 +112,7 @@ Put the battery to work when electricity is expensive, not during your discounte
 | Home Assistant switch | `switch.sem_night_tariff` |
 | Start/end time controls | `time.sem_tariff_start`, `time.sem_tariff_end` |
 
-For example, **Thursday 23:00 → Friday 07:00 is discounted**, but Friday 23:00 → Saturday 07:00 is not. Times use the Home Assistant local time zone. You can change the start/end times and toggle each discounted starting weekday on the Dashboard. The seven choices are saved across Home Assistant restarts. The card follows Home Assistant's English, Russian or Hebrew interface language.
+For example, **Thursday 23:00 → Friday 07:00 is discounted**, but Friday 23:00 → Saturday 07:00 is not. Times use the Home Assistant local time zone. You can change the start/end times and toggle each discounted starting weekday on the Dashboard. The no-discharge scene is automatically resolved from an unambiguous exact friendly-name match if it was not explicitly configured. The seven choices are saved across Home Assistant restarts. The card follows Home Assistant's English, Russian or Hebrew interface language.
 
 The mode has its own ON/OFF switch, remembers its state after a restart, and does not overwrite **Morning Forced Discharge**. When forced discharge finishes, SEM returns to the appropriate scene for the current tariff period.
 
