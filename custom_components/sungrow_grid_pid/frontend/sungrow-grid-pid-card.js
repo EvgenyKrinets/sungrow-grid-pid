@@ -78,12 +78,12 @@ class SungrowGridPidCard extends HTMLElement {
     if(!this._hass)return;
     const days=[this._tr("Sunday"),"Monday","Tuesday","Wednesday","Thursday","Friday",this._tr("Saturday")];
     const settings=[
-      ["Export Target SP","number.sem_export_target","W",this._tr("Желаемая мощность экспорта в сеть. Например, 14 000 Вт.")],
-      ["Export Dead Band","number.sem_dead_band","W",this._tr("Допустимое отклонение от Export Target в обе стороны. Пока экспорт в этом диапазоне, зарядка не изменяется.")],
-      ["Export Delay Time","number.sem_delay","s",this._tr("Сколько секунд отклонение должно непрерывно оставаться за пределами Dead Band до одного шага регулировки.")],
-      ["Charge Gain SP","number.sem_charge_gain","W",this._tr("На сколько ватт увеличивать или уменьшать лимит зарядки после истечения таймера.")],
-      ["Empty SOC SP","number.sem_empty_soc","%",this._tr("Утром принудительная разрядка запускается, только если фактический SOC выше этого порога и резерва батареи.")],
-      ["Battery Forced Discharge Power","number.sem_discharge_power","W",this._tr("Лимит мощности принудительной разрядки. Изменения во время активной разрядки сразу отправляются инвертору.")]
+      [this._tr("Export Target SP"),"number.sem_export_target","W",this._tr("Желаемая мощность экспорта в сеть. Например, 14 000 Вт.")],
+      [this._tr("Export Dead Band"),"number.sem_dead_band","W",this._tr("Допустимое отклонение от Export Target в обе стороны. Пока экспорт в этом диапазоне, зарядка не изменяется.")],
+      [this._tr("Export Delay Time"),"number.sem_delay","s",this._tr("Сколько секунд отклонение должно непрерывно оставаться за пределами Dead Band до одного шага регулировки.")],
+      [this._tr("Charge Gain SP"),"number.sem_charge_gain","W",this._tr("На сколько ватт увеличивать или уменьшать лимит зарядки после истечения таймера.")],
+      [this._tr("Empty SOC SP"),"number.sem_empty_soc","%",this._tr("Утром принудительная разрядка запускается, только если фактический SOC выше этого порога и резерва батареи.")],
+      [this._tr("Battery Forced Discharge Power"),"number.sem_discharge_power","W",this._tr("Лимит мощности принудительной разрядки. Изменения во время активной разрядки сразу отправляются инвертору.")]
     ];
     const gridOn=this._value("switch.sem_grid_target")==="on";
     const morningOn=this._value("switch.sem_morning_discharge")==="on";
