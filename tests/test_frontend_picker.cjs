@@ -24,7 +24,7 @@ const root = {
     if(selector === "ha-card")return this.card;
     return nodes.get(selector) ?? null;
   },
-  querySelectorAll(){return [];},
+  querySelectorAll(selector){return selector === "[data-time]" ? [timeInput] : [];},
   set innerHTML(_) {throw Error("Native time-picker element was rebuilt");}
 };
 root.card={};
