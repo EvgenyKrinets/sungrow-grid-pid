@@ -1,7 +1,7 @@
 name: Build brand and release
 # Generates HA 2026.3+ local branding and publishes semantic release.
 # Release target: dynamic manifest.json version; v4.0.9 refreshed Night Tariff documentation and marketing images
-# v4.0.10: publish selectable discount weekdays and RU/EN/HE card translations
+# v4.0.11: repair translated weekday entity IDs and explain missing tariff scene
 # Publish version from manifest.json; never retag old releases
 
 on:
