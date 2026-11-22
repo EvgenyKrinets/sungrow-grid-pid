@@ -8,19 +8,25 @@ class ManagerSwitch(SwitchEntity, RestoreEntity):
     _attr_should_poll = False
     _attr_has_entity_name = False
 
-    def __init__(self, manager, morning=False):
-        self.manager, self.morning = manager, morning
-        self._attr_name = "SEM Morning Discharge" if morning else "SEM Grid Target"
+    def __init__(self, manager, morning=False, tariff=False):
+        self.manager, self.morning, self.tariff = manager, morning, tariff
+        self._attr_name = (
+            "SEM Night Tariff" if tariff else
+            "SEM Morning Discharge" if morning else "SEM Grid Target"
+        )
         self._attr_unique_id = (
+            "sungrow_energy_manager_tariff" if tariff else
             "sungrow_energy_manager_morning" if morning
             else "sungrow_energy_manager_grid_target"
         )
         self.entity_id = (
+            "switch.sem_night_tariff" if tariff else
             "switch.sem_morning_discharge" if morning
             else "switch.sem_grid_target"
         )
         # The manager reads its durable storage BEFORE adding platforms.
         self._attr_is_on = (
+            manager.tariff_enabled if tariff else
             manager.morning_enabled if morning else manager.enabled
         )
 
@@ -29,6 +35,7 @@ class ManagerSwitch(SwitchEntity, RestoreEntity):
         # Migration from v4.0.4: the manager's Store did not contain these
         # switches, so use RestoreEntity for the first upgrade only.
         saved = (
+            self.manager._saved_tariff_enabled if self.tariff else
             self.manager._saved_morning_enabled if self.morning
             else self.manager._saved_enabled
         )
@@ -36,13 +43,17 @@ class ManagerSwitch(SwitchEntity, RestoreEntity):
             previous = await self.async_get_last_state()
             saved = bool(previous and previous.state == "on")
         self._attr_is_on = saved
-        if self.morning:
+        if self.tariff:
+            self.manager.tariff_enabled = saved
+        elif self.morning:
             self.manager.morning_enabled = saved
         else:
             self.manager.enabled = saved
 
     async def async_turn_on(self, **kwargs):
-        if self.morning:
+        if self.tariff:
+            await self.manager.set_tariff(True)
+        elif self.morning:
             self.manager.morning_enabled = True
             await self.manager.persist()
             self.manager.notify()
@@ -52,7 +63,9 @@ class ManagerSwitch(SwitchEntity, RestoreEntity):
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs):
-        if self.morning:
+        if self.tariff:
+            await self.manager.set_tariff(False)
+        elif self.morning:
             self.manager.morning_enabled = False
             self.manager.exit_requested = self.manager.forced
             await self.manager.persist()
@@ -67,4 +80,4 @@ class ManagerSwitch(SwitchEntity, RestoreEntity):
 
 async def async_setup_entry(hass, entry, async_add_entities):
     manager = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([ManagerSwitch(manager), ManagerSwitch(manager, True)])
+    async_add_entities([ManagerSwitch(manager), ManagerSwitch(manager, True), ManagerSwitch(manager, tariff=True)])
