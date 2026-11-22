@@ -5,6 +5,7 @@ Requires Pillow. Intended for deterministic rendering by GitHub Actions,
 so the real binary PNG lands in the repository without embedding base64.
 """
 from pathlib import Path
+import shutil
 from PIL import Image, ImageDraw, ImageFont
 
 SOURCE = Path("assets/Sungrow Energy Manager for Home Assistant(1).png")
@@ -82,4 +83,8 @@ caption(45, 1244,
 
 OUTPUT.parent.mkdir(parents=True, exist_ok=True)
 out.save(OUTPUT, optimize=True)
+legacy = Path("docs/images/sungrow_grid_pid_energy_infographic.png")
+legacy.parent.mkdir(parents=True, exist_ok=True)
+shutil.copyfile(OUTPUT, legacy)
 print(f"Created {OUTPUT}: {out.width}x{out.height}, {OUTPUT.stat().st_size} bytes")
+print(f"Refreshed legacy infographic path: {legacy}")
