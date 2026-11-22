@@ -1,7 +1,7 @@
 name: Build brand and release
 # Generates HA 2026.3+ local branding and publishes semantic release.
 # Release target: dynamic manifest.json version; v4.0.9 refreshed Night Tariff documentation and marketing images
-# v4.0.13: always restore normal max-discharge scene when night tariff is disabled
+# v4.0.14: localize dashboard descriptions, switches and live diagnostics in RU EN HE
 # Publish version from manifest.json; never retag old releases
 
 on:
